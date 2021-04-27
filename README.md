@@ -1,5 +1,20 @@
+- [TokenBatchSender](#tokenbatchsender)
+  - [Setup](#setup)
+  - [Contracts](#contracts)
+    - [Compiled Contracts](#compiled-contracts)
+    - [Compile Contracts Manually](#compile-contracts-manually)
+    - [Deploy contracts](#deploy-contracts)
+  - [Dapp](#dapp)
+    - [Manully change Dapp config file](#manully-change-dapp-config-file)
+    - [Run Dapp](#run-dapp)
+      - [Compiles and hot-reloads for development](#compiles-and-hot-reloads-for-development)
+      - [Compiles and minifies for production](#compiles-and-minifies-for-production)
+    - [Dapp input csv file format](#dapp-input-csv-file-format)
+  - [Dapp usage](#dapp-usage)
 # TokenBatchSender
 TokenBatchSender is a Dapp for batch sending cfx token and erc777 token
+
+English | [简体中文](./README-CN.md)
 
 ## Setup
 
@@ -41,46 +56,54 @@ cfxtruffle compile
 
 ### Deploy contracts
 
-The `.json` files in `./build/contracts` can be deployed to conflux network (either mainnet or testnet) directly. `DMDToken.json` and `GLDToken.json` are ERC777 sample contracts. `TransferToken.json` takes an address array `trusted_contracts` as the constructor parameter from where the token batch sending request will be accepted.
+`./build/contracts/TransferToken.json` can be deployed to conflux network (either mainnet or testnet) directly. `DMDToken.json` and `GLDToken.json` are ERC777 sample contracts used for testing. `TransferToken.json` takes an address array `trusted_contracts` as the constructor parameter from which array the token batch sending request will be accepted.
 
 ## Dapp
 
 ### Manully change Dapp config file
 
-Suppose you have get the deployed address in [Deploy contracts](#deploy-contracts)
+You need to specify deployed contract address in [Deploy contracts](#deploy-contracts).
+Change `options` and `routing contracts` to custom your Dapp.
 
 ``` javascript
 //frontend/src/contracts-config.js
 
-// import ERC777 Token .json files
-import {default as GLD} from "../../../build/contracts/GLDToken.json";
-import {default as DMD} from "../../../build/contracts/DMDToken.json";
-
-// label will be displayed in Dapp.
-// and you need to specify token addresses
-GLD.label = "测试Token GLD"
-GLD.address = "cfxtest:type.contract:ace59n3pj2ev5f1j3vdcfr39nm9kc8dgde1d83a384"
-
-DMD.label = "测试Token DMD"
-DMD.address = "cfxtest:type.contract:acg4kb024uwn2cr9682s5ar0yk7zx2vuja20bwrx46"
+/* specify token to select in Dapp.
+ contractName: primary key
+ label: label displayed in Dapp frontend
+ address: specify contract address
+ disabled: disable option will be displayed as 'disabled' in Dapp frontend (defalut to false)
+*/ 
+const options = [
+  {
+    contractName: "GLD",
+    label: "测试Token GLD",
+    address: "cfxtest:type.contract:ace59n3pj2ev5f1j3vdcfr39nm9kc8dgde1d83a384"
+  },
+  {
+    contractName: "DMD",
+    label: "测试Token DMD",
+    address: "cfxtest:type.contract:acg4kb024uwn2cr9682s5ar0yk7zx2vuja20bwrx46",
+    disabled: false
+  }
+]
 
 // specify TransferToken.json address
 const routingContractAddress = "cfxtest:type.contract:accuzc2frpfwasccp1p342sj7ujrd02dyp5avd3znt"
-
-// add supported token to options 
-const options = [GLD, DMD]
 ```
 
 ### Run Dapp
 #### Compiles and hot-reloads for development
 
 ```
+cd ./frontend
 npm run serve
 ```
 
 #### Compiles and minifies for production
 
 ```
+cd ./frontend
 npm run build
 ```
 
@@ -92,3 +115,15 @@ An example is provided in `./frontend/src/example/example.csv`
 0x1e0cc11e4dc7208e74e20ce3060fdffc88680514, 1300
 0x1ed71ee0fe63300e0f966546fc5091ba971a3581, 1500
 ```
+
+## Dapp usage
+1. connect to your wallet
+2. select token
+3. select csv [Dapp input csv file format](#dapp-input-csv-file-format)
+![](./image/2021-04-27-14-16-10.png)
+
+4. send token
+![](./image/2021-04-27-14-20-25.png)
+
+5. wait until transaction is confirmed
+![](./image/2021-04-27-14-22-28.png)

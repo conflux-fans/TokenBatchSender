@@ -29,3 +29,4 @@ See [Configuration Reference](https://cli.vuejs.org/config/). -->
 - [x] 所有配置从config导入
 - [x] 测试切换合约相关功能
 - [ ] 网络错误
+- [ ] 用户手动添加代币合约地址
