@@ -18,7 +18,7 @@ contract TransferToken is IERC777Recipient {
     address internal _MANAGER;
 
     modifier onlyManager {
-        require(msg.sender == _MANAGER);
+        require(msg.sender == _MANAGER, "Sender is not manager");
         _;
     }
 
@@ -42,13 +42,12 @@ contract TransferToken is IERC777Recipient {
         _TRUSTED_CONTRACTS[c] = state;
     }
 
-    // TODO: test needed
     function retrieveToken(address tokenContract, uint value) public onlyManager {
         // require balance > value
         // address implementer = _ERC1820_REGISTRY.getInterfaceImplementer(msg.sender, keccak256("ERC777Token"));
         // require (implementer != address(0), "Token contract should be an erc777 contract");
 
-        require(IERC20(tokenContract).balanceOf(address(this)) > value);
+        require(IERC20(tokenContract).balanceOf(address(this)) >= value, "Transfer value is greater than contract balance");
         IERC20(tokenContract).transfer(_MANAGER ,value);
     }
 

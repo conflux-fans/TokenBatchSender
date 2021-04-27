@@ -43,6 +43,8 @@ IERC1820Registry constant internal _ERC1820_REGISTRY = IERC1820Registry(0x88887e
 ```
 Address of ERC1820 on Conflux is different from that of Ethereum. 
 
+`DMDToken.sol` and `GLDToken.sol` are ERC777 sample contracts used for testing.`GLD20.sol` is a sample ERC20 contract. 
+
 After that, run
 ``` bash
 // truffle or cfxtruffle is required
@@ -56,7 +58,7 @@ cfxtruffle compile
 
 ### Deploy contracts
 
-`./build/contracts/TransferToken.json` can be deployed to conflux network (either mainnet or testnet) directly. `DMDToken.json` and `GLDToken.json` are ERC777 sample contracts used for testing. `TransferToken.json` takes an address array `trusted_contracts` as the constructor parameter from which array the token batch sending request will be accepted.
+`./build/contracts/TransferToken.json` can be deployed to conflux network (either mainnet or testnet) directly. `TransferToken.json` takes an address array `trusted_contracts` as the constructor parameter from which array the token batch sending request will be accepted.
 
 ## Dapp
 
@@ -89,7 +91,7 @@ const options = [
 ]
 
 // specify TransferToken.json address
-const routingContractAddress = "cfxtest:type.contract:accuzc2frpfwasccp1p342sj7ujrd02dyp5avd3znt"
+const routingContractAddress = "cfxtest:type.contract:acadtsb7z2s4j47rsgmpzhwx9v5bt0fyu227wxg0xk"
 ```
 
 ### Run Dapp

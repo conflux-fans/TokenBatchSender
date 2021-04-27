@@ -5,7 +5,7 @@
     - [手动编译合约](#手动编译合约)
     - [部署合约](#部署合约)
   - [Dapp](#dapp)
-    - [Manully change Dapp config file](#manully-change-dapp-config-file)
+    - [手动更改 Dapp 配置](#手动更改-dapp-配置)
     - [运行 Dapp 前端](#运行-dapp-前端)
       - [在测试环境中编译运行，并可以进行热重载](#在测试环境中编译运行并可以进行热重载)
       - [生成用于生产环境的静态文件](#生成用于生产环境的静态文件)
@@ -26,7 +26,7 @@ cd ./frontend
 npm install
 ```
 
-使用 Dap p 需要安装 Chrome 扩展 `Conflux Portal`
+使用 Dapp 需要安装 Chrome 扩展 `Conflux Portal`
 
 ## 合约
 
@@ -40,7 +40,8 @@ npm install
 ``` solidity
 IERC1820Registry constant internal _ERC1820_REGISTRY = IERC1820Registry(0x88887eD889e776bCBe2f0f9932EcFaBcDfCd1820);
 ```
-ERC1820 在 Conflux 网络中的地址与以太坊不同
+ERC1820 在 Conflux 网络中的地址与以太坊不同，因此这里需要修改 ERC1820合约的地址。
+`DMDToken.sol` 与 `GLDToken.sol`为测试环境使用的示例ERC777合约。`GLD20.sol`为测试环境使用的示例ERC20合约。
 
 之后运行
 ``` bash
@@ -55,11 +56,11 @@ cfxtruffle compile
 
 ### 部署合约
 
-可以直接使用 `./build/contracts`中的`TransferToken.json` 文件进行部署。`DMDToken.json` 与 `GLDToken.json`为测试环境使用的ERC777合约。`TransferToken.json` 使用地址数组`trusted_contracts`作为初始化的参数，只有从该数组中的合约地址发送的批量转账请求才会被接受。
+可以直接使用 `./build/contracts/TransferToken.json` 文件进行部署。`TransferToken.json` 使用地址数组`trusted_contracts`作为初始化的参数，只有从该数组中的合约地址发送的批量转账请求才会被接受。
 
 ## Dapp
 
-### Manully change Dapp config file
+### 手动更改 Dapp 配置
 
 这一步需要指定在 [部署合约](#部署合约) 中部署的合约地址
 在 `frontend/src/contracts-config.js` 中指定变量 `options` 与 `routingContractAddress` 的值用于配置Dapp.
@@ -88,7 +89,7 @@ const options = [
 ]
 
 // specify TransferToken.json address
-const routingContractAddress = "cfxtest:type.contract:accuzc2frpfwasccp1p342sj7ujrd02dyp5avd3znt"
+const routingContractAddress = "cfxtest:type.contract:acadtsb7z2s4j47rsgmpzhwx9v5bt0fyu227wxg0xk"
 ```
 
 ### 运行 Dapp 前端
@@ -107,7 +108,7 @@ npm run build
 ```
 
 ### Dapp 输入 CSV 格式要求
-Dapp 需要用户输入csv文件才能运行。程序要求是一个n行2列的csv
+Dapp 需要用户输入csv文件才能运行。程序要求是一个n行2列的csv  
 在 `./frontend/src/example/example.csv` 中提供了一个示例
 ``` csv
 // address, token to transfer
