@@ -22,7 +22,7 @@ const options = [
 ]
 
 // specify TransferToken.json address
-const routingContractAddress = "cfxtest:type.contract:acadtsb7z2s4j47rsgmpzhwx9v5bt0fyu227wxg0xk"
+const routingContractAddress = "cfxtest:type.contract:acawv88xs994f2f7ur4g7mewtcptdk2mfy63vupcys"
 
 let config = {}
 options.forEach((option) => {

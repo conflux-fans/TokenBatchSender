@@ -121,7 +121,6 @@
 import { config, routingContractAddress } from "./contracts/contracts-config";
 import TxState from "./enums/tx-state";
 import Web3 from "web3";
-// import { parse } from '@fast-csv/parse'
 
 export default {
   name: "App",
@@ -141,12 +140,8 @@ export default {
       txHash: null,
       state: TxState.NoTask,
       errorMessage: "",
-      // stateColorCss: "background: red",
-      // stateType: "danger",
       tagTheme: "plain",
       routingContract: null,
-        // "cfxtest:type.contract:accuzc2frpfwasccp1p342sj7ujrd02dyp5avd3znt",
-        // "cfxtest:type.contract:acg57vxa3dr801u8vuc0tytmk5ye7wgzeaj72r8gjc", // origin contract
       test: true,
       // options 的初始值不会被使用， 而是在初始化时由config决定
       options: [
@@ -264,21 +259,7 @@ export default {
       })
       this.options = tmp;
     },
-    authorize: async function() {
-      // if (this.conflux === null) {
-      //   if (typeof window.conflux !== "undefined") {
-      //     this.conflux = window.conflux;
-      //     // this.contract = window.confluxJS.Contract({ abi, bytecode });
-      //     // this.contract.address = 'CFXTEST:TYPE.CONTRACT:ACFD3KZZZ4R408USNP0TWD4WG5PNPF7VPJC71GVYFW'
-      //     // this.contract.address = this.tokenContract;
-      //   } else {
-      //     window.alert("未安装portal插件！");
-      //     return;
-      //   }
-      //   window.alert("problem");
-      // }
-      // assert()
-      // window.alert('portal detected')
+    async authorize() {
       const accounts = await this.conflux.enable();
       this.account = accounts[0];
       this.updateTokenBalance(false);
@@ -331,25 +312,10 @@ export default {
     },
     testMethod() {
       console.log('test')
-      // this.$alert(
-      //   this.account.toString(),
-      //   '当前账户',
-      //   {
-      //     // confirmButtonText: '确定',
-      //     // callback: action => {
-      //     //   this.$message({
-      //     //     type: 'info',
-      //     //     message: `action: ${ action }`
-      //     //   });
-      //     // }
-      //     showClose: 'false',
-      //     showCancelButton: 'false',
-      //     showConfirmButton: 'false'
-      //   }
-      // )
     },
     // isUpdate set to false if invoked to init
-    updateTokenBalance: async function(isUpdate) {
+    // TODO: error handling (network mismatch etc)
+    async updateTokenBalance(isUpdate) {
       // console.log(this.account)
       if (!this.account) {
         return;
@@ -380,40 +346,35 @@ export default {
       // }
       this.updateTokenBalance(false);
     },
-    transfer: async function() {
+    async transfer() {
       // 重新获取授权
-      await this.authorize();
-      const data = this.web3.eth.abi.encodeParameters(
-        ["address[]", "uint256[]"],
-        [this.csv.tos, this.csv.vals]
-      );
-
-      const tx = this.contract.send(
-        this.routingContract,
-        this.csv.vals.reduce((a, b) => a + b, 0),
-        this.hexStringToArrayBuffer(data)
-      );
       try {
+        await this.authorize();
+        const data = this.web3.eth.abi.encodeParameters(
+          ["address[]", "uint256[]"],
+          [this.csv.tos, this.csv.vals]
+        );
+
+        const tx = this.contract.send(
+          this.routingContract,
+          this.csv.vals.reduce((a, b) => a + b, 0),
+          this.hexStringToArrayBuffer(data)
+        );
+
+
         const estimate = await tx.estimateGasAndCollateral({
           from: this.account,
         });
-        // wrong sdk usage
-        // const estimate1 = await this.confluxJS.estimateGasAndCollateral({
-        //   from: this.account,
-        // });
         console.log(estimate);
-        // console.log(estimate1);
 
         const pendingTx = tx.sendTransaction({
           from: this.account,
           value: 0,
           gasPrice: 100,
           gas: estimate.gasLimit,
-          // gas: estimate.gasUsed,
-          // gas: 67812
-          // gas: 70666
         });
 
+        // this step will ask user for authorization
         await pendingTx;
         this.state = TxState.Pending;
 
@@ -427,10 +388,16 @@ export default {
         this.txHash = receipt.transactionHash;
         this.state = TxState.Confirmed;
       } catch (err) {
-        console.log(err);
-        this.errorMessage = err.message;
-        this.state = TxState.Error;
+        // console.log(err);
+        // this.errorMessage = err.message;
+        // this.state = TxState.Error;
+        this.processError(err);
       }
+    },
+    processError(err) {
+      console.log(err);
+      this.errorMessage = err.message;
+      this.state = TxState.Error;
     },
     
     handlePreview(file) {
@@ -472,22 +439,29 @@ export default {
     },
 
     async processCSV(file) {
-      const c = await file.text();
-      console.log(c);
-      const rows = c.split("\n");
-      let tos = [];
-      let vals = [];
-      rows.forEach(function(row) {
-        console.log(row);
-        const results = row.split(",");
-        tos.push(results[0].trim());
-        vals.push(parseInt(results[1].trim()));
-      });
-      this.csv = {
-        tos,
-        vals,
-      };
-      console.log(this.csv);
+      try {
+        const c = await file.text();
+        console.log(c);
+        const rows = c.split("\n");
+        let tos = [];
+        let vals = [];
+        rows.forEach((row) => {
+          console.log(row);
+          const results = row.split(",");
+          // sdk error message is confusing
+          // tos.push(this.sdk.format.hexAddress(results[0].trim()));
+          tos.push(results[0].trim());
+          if (isNaN(results[1].trim())) throw new Error('CSV row value is not valid: ' + row);
+          vals.push(parseInt(results[1].trim()));
+        });
+        this.csv = {
+          tos,
+          vals,
+        };
+        console.log(this.csv);
+      } catch (err) {
+        this.processError(err);
+      }
     },
     resetCSV() {
       this.csv = null;

@@ -91,7 +91,7 @@ const options = [
 ]
 
 // specify TransferToken.json address
-const routingContractAddress = "cfxtest:type.contract:acadtsb7z2s4j47rsgmpzhwx9v5bt0fyu227wxg0xk"
+const routingContractAddress = "blabla"
 ```
 
 ### Run Dapp
