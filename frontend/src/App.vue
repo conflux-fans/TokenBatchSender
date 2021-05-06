@@ -10,10 +10,15 @@
           <el-col :span="6">
             <label class="white-font bold-font">Conflux ERC777 Token 批量转账</label>
           </el-col>
-          <el-col  :offset="15" :span="4"  v-if="!accountConnected" > 
+          <el-col  :offset="12" :span="3">
+            <el-tooltip effect="light" content="请在 Conflux Portal 中切换网络">
+              <el-tag  >{{networkText}}</el-tag>
+            </el-tooltip>
+          </el-col>
+          <el-col :span="4"  v-if="!accountConnected" > 
             <el-button   class="full-width" round v-on:click="authorize">连接钱包</el-button>
           </el-col>
-          <el-col :offset="15" :span="2" v-if="accountConnected">
+          <el-col :span="4" v-if="accountConnected">
             <el-dropdown class="full-width" @command="handleCommand">
               <el-button class="full-width" type="success">
                 已连接<i class="el-icon-arrow-down el-icon--right"></i>
@@ -24,17 +29,17 @@
               </el-dropdown-menu>
             </el-dropdown>
           </el-col>
-          <el-col :span="2" v-if="accountConnected" > 
+          <!-- <el-col :span="2" v-if="accountConnected" > 
             <el-button class="full-width" type="warning" v-on:click="authorize">重新连接</el-button>
-          </el-col>
+          </el-col> -->
         </el-row>
       </el-header>
 
-      <el-main style="background: #E4E7ED">
+      <el-main class="main-background">
 
         <el-card shadow="hover">
           <el-row type="flex">
-            <el-col :span="2">代币</el-col>
+            <el-col :span="3">代币选择</el-col>
             <el-col :span="5">
               <el-select
                 v-model="selectedToken"
@@ -42,6 +47,7 @@
                 placeholder="下拉选择或键入搜索"
                 @change="changeToken"
                 size="small"
+                class="full-width"
                 :disabled="!isFreeState"
               >
                 <el-option
@@ -58,13 +64,31 @@
 
           </el-row>
 
-          <el-row v-if="!existOldTokenBalance" type="flex">
+          <!-- <el-row v-if="!existOldTokenBalance" type="flex">
             <el-col :span="2">账户代币余额</el-col>
             <el-col :span="5">{{ queryingTokenBalance }}</el-col>
           </el-row>
           <el-row v-if="existOldTokenBalance" type="flex">
             <el-col :span="2">账户代币余额</el-col>
             <el-col :span="5">（前： {{ oldTokenBalance }} =>）{{ queryingTokenBalance }}</el-col>
+          </el-row> -->
+
+          <el-row type="flex">
+            <el-col :span="3">代币余额（e18）</el-col>
+            <el-col :span="4">
+              <div class="full-width"> 
+                {{ queryingTokenBalance }}
+              </div>
+            </el-col>
+            <el-col :span="1">
+              <el-tooltip v-if="tokenBalance" class="item" effect="dark" :content="tokenBalance" placement="right">
+                <div class="right-align bold-font" >
+                  <label class="main-background">
+                  ...
+                  </label>
+                </div>
+              </el-tooltip>
+            </el-col>
           </el-row>
         </el-card>
 
@@ -75,28 +99,31 @@
               drag
               action="/hello"
               :before-upload="handlePreview"
-              v-if="fileUploaded"
+              v-if="!fileUploaded && !isCsvError"
             >
               <i class="el-icon-upload"></i>
               <div class="el-upload__text">
                 将CSV文件拖到此处，或<em>点击上传</em>
               </div>
               <div class="el-upload__tip" slot="tip">只能解析csv格式文件</div>
-              <div class="el-upload__tip" slot="tip">每行为一组数据，第一列为地址，第二列为转账代币数量</div>
+              <div class="el-upload__tip" slot="tip">每行为一组数据，第一列为地址，第二列为转账代币数量（单位为e18）</div>
             </el-upload>
           </el-row>
           
-          <el-row v-if="!fileUploaded">
+          <el-row v-if="fileUploaded && !isCsvError">
             <el-table
               :data="tableData"
               height="283">
-              <el-table-column fixed prop="address" label="转账地址" width="400"></el-table-column>
-              <el-table-column fixed prop="value" label="转账代币数量" width="150"></el-table-column>
+              <el-table-column fixed prop="address" label="转账地址(16进制)" width="400"></el-table-column>
+              <el-table-column fixed prop="value" label="转账代币数量（e18）" width="300"></el-table-column>
             </el-table>
           </el-row>
-          <el-row v-if="!fileUploaded" style="text-align: left">
-            <el-button type="info" @click="resetCSV" :disabled="!isFreeState" style="display: inline-block">重置CSV文件</el-button>
-            <el-button type="danger" @click="transfer" :disabled="!isFreeState" style="display: inline-block">批量转帐</el-button>
+          <el-row v-if="isCsvError">
+              <div v-html="csvErrorMessage" style="color:red"></div>
+          </el-row>
+          <el-row v-if="isCsvError || fileUploaded" style="text-align: left">
+            <el-button type="info" v-if="isCsvError || fileUploaded" @click="resetCSV" :disabled="!isFreeState" style="display: inline-block">重置CSV文件</el-button>
+            <el-button type="danger" v-if="fileUploaded" @click="transfer" :disabled="!isFreeState" style="display: inline-block">批量转帐</el-button>
           </el-row>
             <!-- <el-button @click="testMethod"> test </el-button> -->
 
@@ -107,9 +134,9 @@
       :style="stateBackgroundStyle"
       >
         <el-row type="flex" align="middle" class="full-height bold-font" >
-          <el-tag :effect="tagTheme" type="info" class="bold-font">Running state </el-tag>
-          <el-tag :effect="tagTheme" :type="stateType">{{ state }}</el-tag>
-          <el-tag :effect="tagTheme" type="info">{{ stateMessage }}</el-tag>
+          <el-tag :effect="tagTheme" type="info" class="bold-font">Transaction state </el-tag>
+          <el-tag :effect="tagTheme" :type="stateType">{{ txState }}</el-tag>
+          <el-tag :effect="tagTheme" v-if="stateMessage" type="info">{{ stateMessage }}</el-tag>
         </el-row>
 
       </el-footer>
@@ -132,17 +159,25 @@ export default {
       conflux: null,
       account: null,
       contract: null,
+      // csv = {tos, vals} 为csv中提供的原始数据 其中vals 单位为1e18
       csv: null,
       tokenBalance: null,
       cfxBalance: null,
-      oldTokenBalance: null,
+      // oldTokenBalance: null,
       config: null,
       txHash: null,
-      state: TxState.NoTask,
+      txState: TxState.NoTask,
       errorMessage: "",
+      errorType: "",
+      errors: {
+        csvError: null,
+        transactionError: null,
+        balanceError: null
+      },
       tagTheme: "plain",
       routingContract: null,
       test: true,
+      fixed: 4,
       // options 的初始值不会被使用， 而是在初始化时由config决定
       options: [
         {
@@ -163,18 +198,40 @@ export default {
     };
   },
   computed: {
+    csvErrorMessage() {
+      return this.errors['csvError']?.message;
+    },
+    networkText() {
+      switch (this.conflux?.networkVersion) {
+        case '1029':
+          return 'Conflux Tethys';
+        case '1':
+          return 'Conflux Testnet';
+        case undefined:
+          return 'Portal Not Detected';
+      }
+
+      return 'networkId: '+ this.conflux?.networkVersion;
+    },
+    // computed may lead to 'undefined' bug ?
+    networkVersion() {
+      // console.log(this.conflux)
+      // console.log(this.conflux.networkVersion)
+      // console.log(this.conflux.chainId)
+      return this.conflux.networkVersion;
+    },
     fileUploaded() {
-      return this.csv === null;
+      return this.csv !== null;
     },
     queryingTokenBalance() {
-      return this.tokenBalance === null ? "请连接钱包并选择代币种类" : this.tokenBalance;
+      return this.tokenBalance === null ? "请连接钱包并选择代币种类" : this.sdk.Drip(this.tokenBalance).toCFX();
     },
-    existOldTokenBalance() {
-      return this.oldTokenBalance !== null;
-    },
+    // existOldTokenBalance() {
+    //   return this.oldTokenBalance !== null;
+    // },
     stateBackgroundStyle() {
       let style = "background: ";
-      switch (this.state) {
+      switch (this.txState) {
         case TxState.Error:
           return style + "#F56C6C";
         case TxState.Confirmed:
@@ -188,7 +245,7 @@ export default {
     },
     stateType() {
       // let style = "";
-      switch (this.state) {
+      switch (this.txState) {
         case TxState.Error:
           return 'danger';
         case TxState.Confirmed:
@@ -201,9 +258,9 @@ export default {
       }
     },
     stateMessage() {
-      switch (this.state) {
+      switch (this.txState) {
         case TxState.Error:
-          return TxState.Error + ":" + this.errorMessage;
+          return TxState.Error + ":" + this.errors['transactionError'].message;
         case TxState.Executed:
           return (
             TxState.Executed +
@@ -211,11 +268,11 @@ export default {
             this.txHash
           );
         default:
-          return this.state;
+          return "";
       }
     },
     isFreeState() {
-      return TxState.isFree(this.state);
+      return TxState.isFree(this.txState);
     },
     tableData() {
       if (this.csv == null) return null
@@ -230,7 +287,10 @@ export default {
     },
     accountConnected() {
       return this.account !== null;
-    }
+    },
+    isCsvError() {
+      return this.errors['csvError']
+    },
   },
   mounted() {
     // executed immediately after page is fully loaded
@@ -243,26 +303,39 @@ export default {
         this.routingContract = routingContractAddress;
         this.web3 = new Web3();
         this.initTokenOptions(this.config);
+
+        this.conflux.on("accountsChanged", (accounts) => {
+          // console.log("accounts changed");
+          if (accounts.length === 0) {
+            this.account = null
+            this.tokenBalance = null
+          }
+        })
       }
     });
   },
   methods: {
     initTokenOptions(config) {
       const tmp = []
-      Object.keys(config).forEach((key) => {
-        // console.log(key);
+      Object.keys(config).forEach((option) => {
         tmp.push({
-          value: key,
-          label: config[key].label,
-          disabled: config[key].disabled
+          value: option,
+          label: config[option].label,
+          disabled: config[option].disabled
+          // disabled: !this.isValidAddressForNet(config[option].address)
         })
       })
       this.options = tmp;
     },
+    
     async authorize() {
-      const accounts = await this.conflux.enable();
-      this.account = accounts[0];
-      this.updateTokenBalance(false);
+      try {
+        const accounts = await this.conflux.enable();
+        this.account = accounts[0];
+        await this.updateTokenBalance();
+      } catch (e) {
+        this.processError(e)
+      }
     },
     showAccount() {
       this.$alert(
@@ -313,51 +386,65 @@ export default {
     testMethod() {
       console.log('test')
     },
-    // isUpdate set to false if invoked to init
     // TODO: error handling (network mismatch etc)
-    async updateTokenBalance(isUpdate) {
+    async updateTokenBalance() {
       // console.log(this.account)
-      if (!this.account) {
-        return;
-      }
-      this.cfxBalance = (await this.confluxJS.getBalance(this.account)).toString();
+      try{
+        if (!this.account) {
+          return;
+        }
+        this.cfxBalance = (await this.confluxJS.getBalance(this.account)).toString();
 
-      if (!this.contract) {
-        return;
-      }
+        if (!this.contract) {
+          return;
+        }
 
-      if (isUpdate) {
-        this.oldTokenBalance = this.tokenBalance;
-      } else {
-        this.oldTokenBalance = null;
+        // if (isUpdate) {
+        //   this.oldTokenBalance = this.tokenBalance;
+        // } else {
+        //   this.oldTokenBalance = null;
+        // }
+        if (!this.isValidAddressForNet(this.contract.address)) {
+          throw new Error('Token contract address does not match network id ' + this.networkVersion)
+        }
+        const tokenBalance = (await this.contract.balanceOf(this.account)).toString();
+        this.tokenBalance = tokenBalance;
+        console.log("Account tokenBalance: ");
+        
+        console.log(tokenBalance);
+      } catch (e) {
+        e._type = "balanceError";
+        throw e;
       }
-      const tokenBalance = await this.contract.balanceOf(this.account);
-      this.tokenBalance = tokenBalance;
-      console.log("Account tokenBalance: ");
-      
-      console.log(tokenBalance);
     },
     async changeToken() {
       // on invoke, selectedToken has been changed
       console.log("Selected token changed to %s", this.selectedToken);
-      this.contract = this.confluxJS.Contract(this.config[this.selectedToken]);
-      // if (this.account) {
-      //   this.tokenBalance = await this.contract.balanceOf(this.account);
-      // }
-      this.updateTokenBalance(false);
+      // this.config[this.selectedToken]  { bytecode, abi, address }
+      try {
+        this.contract = this.confluxJS.Contract(this.config[this.selectedToken]);
+        await this.updateTokenBalance();
+      } catch (e) {
+
+        this.processError(e)
+      }
+    },
+    fromCfxToDrip(cfx) {
+      return this.sdk.Drip.fromCFX(cfx).toString()
     },
     async transfer() {
-      // 重新获取授权
       try {
+        // 重新获取授权
         await this.authorize();
+        // TODO: 检查合约地址是否与当前选择的网络匹配
         const data = this.web3.eth.abi.encodeParameters(
           ["address[]", "uint256[]"],
-          [this.csv.tos, this.csv.vals]
+          [this.csv.tos, this.csv.vals.map(element => this.fromCfxToDrip(element))]
         );
 
         const tx = this.contract.send(
           this.routingContract,
-          this.csv.vals.reduce((a, b) => a + b, 0),
+          this.fromCfxToDrip(this.csv.vals.reduce((a, b) => a + b, 0)),
           this.hexStringToArrayBuffer(data)
         );
 
@@ -370,43 +457,83 @@ export default {
         const pendingTx = tx.sendTransaction({
           from: this.account,
           value: 0,
-          gasPrice: 100,
+          gasPrice: 1,
           gas: estimate.gasLimit,
         });
 
         // this step will ask user for authorization
         await pendingTx;
-        this.state = TxState.Pending;
+        this.txState = TxState.Pending;
 
         let receipt =  await pendingTx.executed()
         this.txHash = receipt.transactionHash;
-        this.state = TxState.Executed;
-        // this.state = "Executed. Not confirmed yet. txHash: " + this.txHash;
-        this.updateTokenBalance(true);
+        this.txState = TxState.Executed;
+        // this.txState = "Executed. Not confirmed yet. txHash: " + this.txHash;
+        await this.updateTokenBalance();
 
         receipt = await pendingTx.confirmed()
         this.txHash = receipt.transactionHash;
-        this.state = TxState.Confirmed;
+        this.txState = TxState.Confirmed;
       } catch (err) {
         // console.log(err);
         // this.errorMessage = err.message;
-        // this.state = TxState.Error;
+        // this.txState = TxState.Error;
+        err._type = 'transactionError'
         this.processError(err);
       }
     },
     processError(err) {
       console.log(err);
-      this.errorMessage = err.message;
-      this.state = TxState.Error;
+      console.log(err._type)
+      // balanceError csvError transactionError
+      switch (err._type) {
+        case 'balanceError':
+          this.tokenBalance = null;
+          this.cfxBalance = null;
+          this.errors[err._type] = err
+          // this.errorType =err._type;
+          // this.errorMessage = err.message;
+          this.$alert(
+            err.message,
+            '错误'
+          )
+          break;
+        case 'csvError': 
+          this.errors[err._type] = err
+          break;
+        case 'transactionError':
+          this.errors[err._type] = err
+          this.txState = TxState.Error;
+          break;
+        default:
+          // this.errorType =err._type;
+          // this.errorMessage = err.message;
+      }
+      console.log(this.errors)
     },
     
     handlePreview(file) {
-      console.log(file);
+      // console.log(file);
       this.processCSV(file);
       // return false, then upload action will not be triggered
       return false;
     },
-    // tool function
+    getNetId(address) {
+      try{
+        return this.sdk.address.decodeCfxAddress(address).netId;
+      } catch (e) {
+        return 999999
+      }
+    },
+    // 0x address (999999) can be used anywhere
+    // mainnet (1029) address can be used in test net (1)
+    isValidAddressForNet(accountAddress) {
+      const id = this.getNetId(accountAddress);
+      // console.log(id)
+      // console.log(this.networkVersion)
+      return parseInt(id) >= parseInt(this.networkVersion)
+    },
+    // util function
     hexStringToArrayBuffer(hexString) {
       // remove the leading 0x
       hexString = hexString.replace(/^0x/, "");
@@ -445,15 +572,35 @@ export default {
         const rows = c.split("\n");
         let tos = [];
         let vals = [];
-        rows.forEach((row) => {
-          console.log(row);
+
+        let csv_msg = []
+
+        for (let i = 0; i < rows.length; ++i) {
+          const row = rows[i];
           const results = row.split(",");
           // sdk error message is confusing
           // tos.push(this.sdk.format.hexAddress(results[0].trim()));
-          tos.push(results[0].trim());
-          if (isNaN(results[1].trim())) throw new Error('CSV row value is not valid: ' + row);
-          vals.push(parseInt(results[1].trim()));
-        });
+          const addr = results[0].trim()
+          const val = results[1].trim()
+
+          if (!this.isValidAddressForNet(addr) || isNaN(val)) {
+            csv_msg.push('CSV row ' + (i+1) + ' address/value is not valid: ' + row)
+          } else {
+            tos.push(this.sdk.format.hexAddress(addr));
+            vals.push(parseFloat(val));
+          }
+        }
+
+        if(csv_msg.length !== 0) {
+          // console.log(csv_msg)
+          const msg = csv_msg.join("<br>")
+          // console.log(msg)
+          // this.errorMessage = msg
+          // this.csvError = msg
+          const tmp = new Error(msg)
+          tmp._type = "csvError"
+          throw tmp
+        }
         this.csv = {
           tos,
           vals,
@@ -465,8 +612,13 @@ export default {
     },
     resetCSV() {
       this.csv = null;
-      this.state = TxState.NoTask;
+      this.errors['csvError'] = null
+      // this.errorType = ""
+      // this.txState = TxState.NoTask;
     },
+    resetTokenBalance() {
+      this.tokenBalance = null;
+    }
   },
 };
 </script>
@@ -486,6 +638,10 @@ body,
   height: 100%
 }
 
+.main-background {
+  background: #E4E7ED;
+}
+
 .full-height {
   height: 100%;
   /* align: middle; */
@@ -493,6 +649,14 @@ body,
 
 .full-width {
   width: 100%;
+}
+
+.right-align {
+  text-align: right;
+}
+
+.center-align {
+  text-align: center;
 }
 
 .bold-font {

@@ -62,7 +62,7 @@ contract TransferToken is IERC777Recipient {
     ) override external {
         require(to == address(this), "should transfer to this contract");
         // require msg.sender be trusted contracts
-        require(_TRUSTED_CONTRACTS[msg.sender], "Token is not registered.");
+        require(_TRUSTED_CONTRACTS[msg.sender], "The ERC777 Token is not registered in routing contract");
 
         (address[] memory tos,uint256[] memory vals) = abi.decode(userData, (address[], uint256[]));
 
@@ -79,6 +79,7 @@ contract TransferToken is IERC777Recipient {
         require(sum == amount, "Amount should equal to the sum of transfer");
 
         // msg.sender是被信任的 因此其implementer也是被信任的
+        // 或者要求 msg.sender == implementer，这样能否不用设置 trusted contracts？
         address implementer = _ERC1820_REGISTRY.getInterfaceImplementer(msg.sender, keccak256("ERC777Token"));
         require (implementer != address(0), "Message sender should be an erc777 contract");
         for (uint256 i = 0; i < length; ++i) {
