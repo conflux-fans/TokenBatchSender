@@ -147,6 +147,7 @@
 <script>
 import { config, routingContractAddress } from "./contracts/contracts-config";
 import TxState from "./enums/tx-state";
+import NetworkType from './enums/network-type'
 import Web3 from "web3";
 
 export default {
@@ -518,20 +519,40 @@ export default {
       // return false, then upload action will not be triggered
       return false;
     },
+    // any valid address will return an output
     getNetId(address) {
-      try{
+      if (this.sdk.address.hasNetworkPrefix(address)) {
         return this.sdk.address.decodeCfxAddress(address).netId;
-      } catch (e) {
-        return 999999
+      } else {
+        // an invalid address will throw an error
+        this.sdk.format.hexAddress(address)
+        return -1
       }
     },
-    // 0x address (999999) can be used anywhere
+    netWorkType(address) {
+      return NetworkType.fromNetId(this.getNetId(address))
+    },
+    // 0x address can be used anywhere
     // mainnet (1029) address can be used in test net (1)
     isValidAddressForNet(accountAddress) {
       const id = this.getNetId(accountAddress);
-      // console.log(id)
-      // console.log(this.networkVersion)
-      return parseInt(id) >= parseInt(this.networkVersion)
+
+      const accountType = this.netWorkType(accountAddress);
+      const netType = NetworkType.fromNetId(parseInt(this.nerworkVersion));
+
+      switch (netType) {
+        case NetworkType.MainNet:
+          return accountType === NetworkType.MainNet || accountType === NetworkType.NotSpecified
+        case NetworkType.TestNet:
+          // 可能为id不为1的测试网 / 本地网  
+          if (accountType !== NetworkType.TestNet) {
+            return true
+          } else {
+            return parseInt(id) === parseInt(this.networkVersion)
+          }
+        default:
+          throw new Error('unexpected portal network id: ' + this.networkVersion)
+      }
     },
     // util function
     hexStringToArrayBuffer(hexString) {
@@ -607,6 +628,7 @@ export default {
         };
         console.log(this.csv);
       } catch (err) {
+        err._type = 'csvError'
         this.processError(err);
       }
     },
