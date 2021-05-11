@@ -8,12 +8,16 @@
           <el-col :span="6">
             <label class="white-font bold-font">Conflux ERC777 Token 批量转账</label>
           </el-col>
-          <el-col  :offset="12" :span="3">
+          <el-col :offset="9" :span="2">
+            <el-tag :effect="tagTheme" :type="stateType" @click="showTxState" style="cursor: pointer">{{ txState }}</el-tag>
+          </el-col>
+          <el-col :span="3">
             <el-tooltip effect="light" content="请在 Conflux Portal 中切换网络">
-              <el-tag  >{{networkText}}</el-tag>
+              <el-tag>{{networkText}}</el-tag>
             </el-tooltip>
           </el-col>
-          <el-col :span="4"  v-if="!accountConnected" > 
+          
+          <el-col :span="4" v-if="!accountConnected" > 
             <el-button   class="full-width" round v-on:click="authorize">连接钱包</el-button>
           </el-col>
           <el-col :span="4" v-if="accountConnected">
@@ -35,69 +39,83 @@
 
       <!-- <el-aside width="200px">Aside</el-aside> -->
       <el-main class="main-background">
-        <el-card shadow="hover">
-          <el-row type="flex">
-            <el-col :span="3">代币选择</el-col>
-            <el-col :span="5">
-              <el-select
-                v-model="selectedToken"
-                filterable
-                placeholder="下拉选择或键入搜索"
-                @change="changeToken"
-                size="small"
-                class="full-width"
-                :disabled="!isFreeState"
-              >
-                <el-option
-                  v-for="item in options"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                  :disabled="item.disabled"
-                >
-                </el-option>
-              </el-select>
-            </el-col>
 
-          </el-row>
+        <el-row type="flex" justify="center">
+          <el-col :span="20">
+            <el-card shadow="hover">
+              <el-row type="flex" >
+                <el-col :span="7">代币选择</el-col>
+                <el-col :span="11">
+                  <el-select
+                    v-model="selectedToken"
+                    filterable
+                    placeholder="下拉选择或键入搜索"
+                    @change="changeToken"
+                    size="small"
+                    class="full-width"
+                    :disabled="!isFreeState"
+                  >
+                    <el-option
+                      v-for="item in options"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                      :disabled="item.disabled"
+                    >
+                    </el-option>
+                  </el-select>
+                </el-col>
 
-          <el-row type="flex">
-            <el-col :span="3">代币余额（e18）</el-col>
-            <el-col :span="4">
-              <div class="full-width"> 
-                {{ queryingTokenBalance }}
-              </div>
-            </el-col>
-            <el-col :span="1">
-              <el-tooltip v-if="tokenBalance" class="item" effect="dark" :content="tokenBalance" placement="right">
-                <div class="right-align bold-font" >
-                  <label class="main-background">
-                  ...
-                  </label>
-                </div>
-              </el-tooltip>
-            </el-col>
-          </el-row>
-        </el-card>
+              </el-row>
 
-        <csv-panel 
-          v-bind:csv="csv"
-          v-bind:isFreeState="isFreeState"
-          v-bind:networkVersion="networkVersion"
-          v-bind:sdk="sdk"
-          v-bind:csvError="errors['csvError']"
-          v-on:process-error="processError"
-          v-on:set-csv="setCsv"
-          v-on:reset-csv="resetCsv"
-          v-on:transfer="transfer"
-        >
-        </csv-panel>
-        <history-transaction-panel
-          v-bind:transactionList="transactionList"
-        ></history-transaction-panel>
+              <el-row type="flex">
+                <el-col :span="7">代币余额（e18）</el-col>
+                <el-col :span="10">
+                  <div class="full-width"> 
+                    {{ queryingTokenBalance }}
+                  </div>
+                </el-col>
+                <el-col :span="1">
+                  <el-tooltip v-if="tokenBalance" class="item" effect="dark" :content="tokenBalance" placement="right">
+                    <div class="right-align bold-font" >
+                      <label class="main-background">
+                      ...
+                      </label>
+                    </div>
+                  </el-tooltip>
+                </el-col>
+              </el-row>
+            </el-card>
+          </el-col>
+        </el-row>
+
+        <el-row type="flex" justify="center">
+          <el-col :span="20">
+            <csv-panel 
+              v-bind:csv="csv"
+              v-bind:isFreeState="isFreeState"
+              v-bind:networkVersion="networkVersion"
+              v-bind:sdk="sdk"
+              v-bind:csvError="errors['csvError']"
+              v-on:process-error="processError"
+              v-on:set-csv="setCsv"
+              v-on:reset-csv="resetCsv"
+              v-on:transfer="transfer"
+            >
+            </csv-panel>
+          </el-col>
+        </el-row>
+        <el-row type="flex" justify="center">
+          <el-col :span="20">
+            <history-transaction-panel
+              v-bind:transactionList="transactionList"
+              v-on:reset-transaction-list="resetTransactionList"
+            ></history-transaction-panel>
+          </el-col>
+        </el-row>
       </el-main>
 
-      <el-footer
+      <!-- <el-footer
       :style="stateBackgroundStyle"
       >
         <el-row type="flex" align="middle" class="full-height bold-font" >
@@ -106,7 +124,7 @@
           <el-tag :effect="tagTheme" v-if="stateMessage" type="info">{{ stateMessage }}</el-tag>
         </el-row>
 
-      </el-footer>
+      </el-footer> -->
     </el-container>
   </div>
 </template>
@@ -131,7 +149,15 @@ export default {
   data() {
     return {
       conflux: null,
-      sdk: null,
+
+      /*
+        注意 下面这行的注释不能取消，否则会在执行await tx.confirmed() 的时候会报错  
+          path="", [big.js] Invalid number
+          错误由ConfluxSDK.format.fixed64抛出
+
+          没有下面这行时会有vue warn， 不过并不影响运行
+      */
+      // sdk: null,
 
       // csv = {tos, vals} 为csv中提供的原始数据 其中vals单位为1e18
       csv: null,
@@ -171,6 +197,8 @@ export default {
       ],
       config: null,
       routingContract: null,
+
+      DEBUG: process.env.NODE_ENV !== 'production'
     };
   },
   computed: {
@@ -234,7 +262,7 @@ export default {
             this.txHash
           );
         default:
-          return "";
+          return this.txState;
       }
     },
     isFreeState() {
@@ -245,7 +273,16 @@ export default {
       return this.account !== null;
     },
   },
+  watch: {
+    transactionList(newVal) {
+      localStorage.transactionList = JSON.stringify(newVal)
+    }
+  },
   mounted() {
+    if (localStorage.transactionList) {
+      this.transactionList = JSON.parse(localStorage.transactionList)
+    }
+
     // executed immediately after page is fully loaded
     this.$nextTick(function() {
       if (typeof window.conflux !== "undefined") {
@@ -268,6 +305,15 @@ export default {
     });
   },
   methods: {
+    notifyTxState() {
+      this.$notify({
+        title: this.txState,
+        // message: this.stateM,
+        type: this.stateType,
+        offset: 60,
+        duration: 6000
+      })
+    },
     
     initTokenOptions(config) {
       const tmp = []
@@ -311,6 +357,23 @@ export default {
       this.$alert(
         this.sdk.Drip(this.cfxBalance).toCFX(),
         '当前账户CFX余额',
+        {
+          showClose: false,
+          showCancelButton: false,
+          showConfirmButton: false,
+          closeOnClickModal: true,
+          closeOnPressEscape: true,
+          callBack: ()=>{},
+        }
+      ).catch(()=>{
+        // 点击框外触发
+        // do nothing
+      })
+    },
+    showTxState() {
+      this.$alert(
+        this.stateMessage,
+        '当前交易执行状态',
         {
           showClose: false,
           showCancelButton: false,
@@ -413,30 +476,43 @@ export default {
         // this step will ask user for authorization
         await pendingTx;
         this.txState = TxState.Pending;
-        console.log("before execute")
-        let receipt =  await pendingTx.executed()
 
-        console.log("after execute")
+        this.notifyTxState()
+        let receipt =  await pendingTx.executed()
         this.txHash = receipt.transactionHash;
         this.txState = TxState.Executed;
 
-        this.transactionList.push({
-          hash: this.txHash,
-          csv: this.csv
-        })
-        // this.txState = "Executed. Not confirmed yet. txHash: " + this.txHash;
-        console.log('before update')
+        
         await this.updateTokenBalance();
 
-        console.log('after update')
-
-        // ! this line will incur an error
-        // ! error message
-        // ! not match any (path="", [big.js] Invalid number) or (path="", expected to be null, got 0xe666666666666666666666666666666666666666666666666666666666666665)
+        if (this.DEBUG){
+          this.transactionList.push({
+            hash: this.txHash,
+            csv: this.csv,
+            confirmDate: Date.now(),
+            selectedToken: this.selectedToken,
+            tokenAddress: this.contract.address,
+          })
+        }
+        this.notifyTxState()
         receipt = await pendingTx.confirmed()
+
+        if (!this.DEBUG){
+          this.transactionList.push({
+            hash: this.txHash,
+            csv: this.csv,
+            confirmDate: Date.now(),
+            selectedToken: this.selectedToken,
+            tokenAddress: this.contract.address,
+          })
+        }
+        
 
         this.txHash = receipt.transactionHash;
         this.txState = TxState.Confirmed;
+        this.notifyTxState()
+
+        this.resetCsv()
       } catch (err) {
         err._type = ErrorType.TransactionError
         this.processError(err);
@@ -464,6 +540,10 @@ export default {
         case ErrorType.TransactionError:
           this.errors[err._type] = err
           this.txState = TxState.Error;
+          this.$alert(
+            err.message,
+            '交易执行错误'
+          )
           break;
         default:
           // this.errorType =err._type;
@@ -514,6 +594,9 @@ export default {
     },
     resetTokenBalance() {
       this.tokenBalance = null;
+    },
+    resetTransactionList() {
+      this.transactionList = [];
     }
   },
 };
@@ -535,7 +618,8 @@ body,
 }
 
 .main-background {
-  background: #E4E7ED;
+  /* background: #E4E7ED; */
+  background: #EBEEF5;
 }
 
 .full-height {

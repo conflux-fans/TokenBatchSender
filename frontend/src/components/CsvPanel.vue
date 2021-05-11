@@ -16,11 +16,22 @@
         <div class="el-upload__tip" slot="tip">
           每行为一组数据，第一列为地址，第二列为转账代币数量（单位为e18）
         </div>
+        <div class="el-upload__tip" slot="tip">
+          查看<a href="./example.csv">示例文件</a>
+        </div>
       </el-upload>
+    </el-row>
+    <el-row v-if="fileUploaded && !isCsvError" type="flex" justify="left">
+      <el-col :span="6">
+          <div>转账代币总数: {{amountSum}}</div>
+        </el-col>
+        <el-col :span="6">
+          <div>转账条数: {{length}}</div>
+        </el-col>
     </el-row>
 
     <el-row v-if="fileUploaded && !isCsvError">
-      <el-table :data="tableData" height="283">
+      <el-table :data="tableData" height="283" v-loading="!isFreeState">
         <el-table-column
           fixed
           prop="address"
@@ -62,6 +73,8 @@
 <script>
 import ErrorType from '../enums/error-type'
 import NetworkType from '../enums/network-type'
+import NP from 'number-precision'
+
 
 export default {
   name: "CsvPanel",
@@ -177,6 +190,12 @@ export default {
         });
       }
       return tmp;
+    },
+    amountSum() {
+      return NP.plus(...this.csv.vals)
+    },
+    length() {
+      return this.csv.tos.length
     },
   }
 };
