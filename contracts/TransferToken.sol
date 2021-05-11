@@ -9,46 +9,57 @@ import "@openzeppelin/contracts/token/ERC777/IERC777.sol";
 import "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
 import "@openzeppelin/contracts/introspection/IERC1820Registry.sol";
 
-
 contract TransferToken is IERC777Recipient {
-    
-    IERC1820Registry constant internal _ERC1820_REGISTRY = IERC1820Registry(0x88887eD889e776bCBe2f0f9932EcFaBcDfCd1820);
-    
-    mapping(address => bool) internal _TRUSTED_CONTRACTS;
-    address internal _MANAGER;
+    IERC1820Registry internal constant _ERC1820_REGISTRY =
+        IERC1820Registry(0x88887eD889e776bCBe2f0f9932EcFaBcDfCd1820);
+
+    mapping(address => bool) internal _trustedContracts;
+    address internal _manager;
 
     modifier onlyManager {
-        require(msg.sender == _MANAGER, "Sender is not manager");
+        require(msg.sender == _manager, "Sender is not manager");
         _;
     }
 
-    constructor(address[] memory trusted_contracts)
-        public
-    {
-        for (uint i = 0; i < trusted_contracts.length; i++) {
-            _TRUSTED_CONTRACTS[trusted_contracts[i]] = true;
+    constructor(address[] memory trusted_contracts) public {
+        for (uint256 i = 0; i < trusted_contracts.length; i++) {
+            _trustedContracts[trusted_contracts[i]] = true;
         }
-        _MANAGER = msg.sender;
+        _manager = msg.sender;
         // keccak256(abi.encodePacked("ERC777TokensRecipient")) == 0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b
-        _ERC1820_REGISTRY.setInterfaceImplementer(address(this), 0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b, address(this));
+        _ERC1820_REGISTRY.setInterfaceImplementer(
+            address(this),
+            0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b,
+            address(this)
+        );
+    }
+
+    function changeManager(address newManager) public onlyManager {
+        _manager = newManager;
     }
 
     function isTrustedContract(address c) public view returns (bool) {
-        return _TRUSTED_CONTRACTS[c];
+        return _trustedContracts[c];
     }
 
     function setTrustedContractState(address c, bool state) public onlyManager {
-        // require(msg.sender == _MANAGER);
-        _TRUSTED_CONTRACTS[c] = state;
+        // require(msg.sender == _manager);
+        _trustedContracts[c] = state;
     }
 
-    function retrieveToken(address tokenContract, uint value) public onlyManager {
+    function retrieveToken(address tokenContract, uint256 value)
+        public
+        onlyManager
+    {
         // require balance > value
         // address implementer = _ERC1820_REGISTRY.getInterfaceImplementer(msg.sender, keccak256("ERC777Token"));
         // require (implementer != address(0), "Token contract should be an erc777 contract");
 
-        require(IERC20(tokenContract).balanceOf(address(this)) >= value, "Transfer value is greater than contract balance");
-        IERC20(tokenContract).transfer(_MANAGER ,value);
+        require(
+            IERC20(tokenContract).balanceOf(address(this)) >= value,
+            "Transfer value is greater than contract balance"
+        );
+        IERC20(tokenContract).transfer(_manager, value);
     }
 
     // @notice called when someone attempts to transfer ERC-777 tokens to this address.  If this function were to throw or doesn't exist, then the token transfer would fail.
@@ -59,14 +70,17 @@ contract TransferToken is IERC777Recipient {
         uint256 amount,
         bytes calldata userData,
         bytes calldata operatorData
-    ) override external {
+    ) external override {
         require(to == address(this), "should transfer to this contract");
         // require msg.sender be trusted contracts
-        require(_TRUSTED_CONTRACTS[msg.sender], "Token is not registered.");
+        require(
+            _trustedContracts[msg.sender],
+            "The ERC777 Token is not registered in routing contract"
+        );
 
-        (address[] memory tos,uint256[] memory vals) = abi.decode(userData, (address[], uint256[]));
+        (address[] memory tos, uint256[] memory vals) =
+            abi.decode(userData, (address[], uint256[]));
 
-        
         uint256 length = tos.length;
 
         require(tos.length == vals.length, "tos and vals length not match");
@@ -79,8 +93,16 @@ contract TransferToken is IERC777Recipient {
         require(sum == amount, "Amount should equal to the sum of transfer");
 
         // msg.sender是被信任的 因此其implementer也是被信任的
-        address implementer = _ERC1820_REGISTRY.getInterfaceImplementer(msg.sender, keccak256("ERC777Token"));
-        require (implementer != address(0), "Message sender should be an erc777 contract");
+        // 或者要求 msg.sender == implementer，这样能否不用设置 trusted contracts？
+        address implementer =
+            _ERC1820_REGISTRY.getInterfaceImplementer(
+                msg.sender,
+                keccak256("ERC777Token")
+            );
+        require(
+            implementer != address(0),
+            "Message sender should be an erc777 contract"
+        );
         for (uint256 i = 0; i < length; ++i) {
             IERC777(implementer).send(tos[i], vals[i], "");
         }

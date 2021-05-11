@@ -1,7 +1,7 @@
 {
   "language": "",
-  "main": "./contracts/Contract.sol",
-  "deploy": "./build/contracts/Contract.json",
+  "main": "./contracts/TransferToken.sol",
+  "deploy": "./build/contracts/TransferToken.json",
   "compilers": {
     "cfxtruffle": "0.0.8",
     "solc": "0.6.12"
