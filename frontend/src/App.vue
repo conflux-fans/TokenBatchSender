@@ -6,7 +6,7 @@
       >
         <el-row class="full-height" type="flex" align="middle" justify="left">
           <el-col :span="6">
-            <label class="white-font bold-font">Conflux ERC777 Token 批量转账</label>
+            <label class="white-font bold-font">Conflux 批量转账</label>
           </el-col>
           <el-col :offset="9" :span="2">
             <el-tag :effect="tagTheme" :type="stateType" @click="showTxState" style="cursor: pointer">{{ txState }}</el-tag>
@@ -33,7 +33,7 @@
         <el-row type="flex" justify="center">
           <el-col :span="20">
             <el-card shadow="hover">
-              <el-row type="flex" >
+              <el-row v-if="!isNativeToken">
                 <el-col :span="7">代币选择</el-col>
                 <el-col :span="11">
                   <el-select
@@ -41,7 +41,7 @@
                     filterable
                     placeholder="下拉选择或键入搜索"
                     @change="changeToken"
-                    size="small"
+                    size="mini"
                     class="full-width"
                     :disabled="!isFreeState"
                   >
@@ -55,7 +55,23 @@
                     </el-option>
                   </el-select>
                 </el-col>
+                <el-col :offset="1" :span="3">
+                  <el-button type="info" size="mini" :disabled="!isFreeState" @click="isNativeToken ^= 1">
+                    切换至原生代币
+                  </el-button>
+                </el-col>
+              </el-row>
 
+              <el-row v-if="isNativeToken">
+                <el-col :span="7">代币选择</el-col>
+                <el-col :span="11">
+                  原生CFX
+                </el-col>
+                <el-col :offset="1" :span="3">
+                  <el-button type="info" size="mini" :disabled="!isFreeState" @click="isNativeToken ^= 1">
+                    切换至ERC777代币
+                  </el-button>
+                </el-col>
               </el-row>
 
               <el-row type="flex">
@@ -120,7 +136,7 @@
 </template>
 
 <script>
-import { config, routingContractAddress } from "./contracts/contracts-config";
+import { config, routingContractConfig } from "./contracts/contracts-config";
 import TxState from "./enums/tx-state";
 import ErrorType from './enums/error-type'
 import Web3 from "web3";
@@ -157,6 +173,8 @@ export default {
       contract: null,
       tokenBalance: null,
       cfxBalance: null,
+
+      isNativeToken: false,
 
       txHash: null,
       txState: TxState.NoTask,
@@ -211,6 +229,9 @@ export default {
       return this.conflux?.networkVersion;
     },
     queryingTokenBalance() {
+      if (this.isNativeToken) {
+        return this.cfxBalance === null ? "请连接钱包" : this.sdk.Drip(this.cfxBalance).toCFX();
+      }
       return this.tokenBalance === null ? "请连接钱包并选择代币种类" : this.sdk.Drip(this.tokenBalance).toCFX();
     },
     simplifiedAccount() {
@@ -287,7 +308,7 @@ export default {
         this.confluxJS = window.confluxJS;
         this.sdk = window.ConfluxJSSDK;
         this.config = config;
-        this.routingContract = routingContractAddress;
+        this.routingContract = this.confluxJS.Contract(routingContractConfig)
         this.web3 = new Web3();
         this.initTokenOptions(this.config);
 
@@ -295,7 +316,7 @@ export default {
           // console.log("accounts changed");
           if (accounts.length === 0) {
             this.account = null
-            this.tokenBalance = null
+            this.resetBalance()
           }
         })
       }
@@ -450,25 +471,46 @@ export default {
         }
         console.log(sum.toString())
 
-        const tx = this.contract.send(
-          this.routingContract,
-          // this.fromCfxToDrip(this.csv.vals.reduce((a, b) => a + b, 0)),
-          sum.toString(),
-          this.hexStringToArrayBuffer(data)
-        );
+        let pendingTx;
 
+        if (!this.isNativeToken) {
+          const tx = this.contract.send(
+            this.routingContract.address,
+            // this.fromCfxToDrip(this.csv.vals.reduce((a, b) => a + b, 0)),
+            sum.toString(),
+            this.hexStringToArrayBuffer(data)
+          );
 
-        const estimate = await tx.estimateGasAndCollateral({
-          from: this.account,
-        });
-        console.log(estimate);
+          const estimate = await tx.estimateGasAndCollateral({
+            from: this.account,
+          });
+          console.log(estimate);
 
-        const pendingTx = tx.sendTransaction({
-          from: this.account,
-          value: 0,
-          gasPrice: 1,
-          gas: estimate.gasLimit,
-        });
+          pendingTx = tx.sendTransaction({
+            from: this.account,
+            value: 0,
+            gasPrice: 1,
+            gas: estimate.gasLimit,
+          });
+        } else {
+          const tx = this.routingContract.send(
+            // this.fromCfxToDrip(this.csv.vals.reduce((a, b) => a + b, 0)),
+            this.hexStringToArrayBuffer(data)
+          );
+
+          const estimate = await tx.estimateGasAndCollateral({
+            from: this.account,
+            value: sum.toString(),
+          });
+          console.log(estimate);
+
+          pendingTx = tx.sendTransaction({
+            from: this.account,
+            value: sum.toString(),
+            gasPrice: 1,
+            gas: estimate.gasLimit,
+          });
+        }
 
         // this step will ask user for authorization
         await pendingTx;
@@ -487,8 +529,8 @@ export default {
             hash: this.txHash,
             csv: this.csv,
             confirmDate: Date.now(),
-            selectedToken: this.selectedToken,
-            tokenAddress: this.contract.address,
+            selectedToken: this.isNativeToken ? "原生CFX" : this.selectedToken,
+            tokenAddress: this.isNativeToken ? "null" : this.contract.address,
           })
         }
         this.notifyTxState()
@@ -499,8 +541,8 @@ export default {
             hash: this.txHash,
             csv: this.csv,
             confirmDate: Date.now(),
-            selectedToken: this.selectedToken,
-            tokenAddress: this.contract.address,
+            selectedToken: this.isNativeToken ? "原生CFX" : this.selectedToken,
+            tokenAddress: this.isNativeToken ? "null" : this.contract.address,
           })
         }
         
@@ -589,7 +631,8 @@ export default {
       // this.errorType = ""
       // this.txState = TxState.NoTask;
     },
-    resetTokenBalance() {
+    resetBalance() {
+      this.cfxBalance = null
       this.tokenBalance = null;
     },
     resetTransactionList() {

@@ -1,5 +1,6 @@
 // import ERC777 Token .json files
 import {default as ERC777} from "../../../build/contracts/ERC777.json";
+import {default as routing} from "../../../build/contracts/TransferToken.json";
 
 /* specify token to select in Dapp.
  contractName: primary key
@@ -11,7 +12,7 @@ const options = [
   {
     contractName: "GLD",
     label: "测试Token GLD",
-    address: "cfxtest:type.contract:ace59n3pj2ev5f1j3vdcfr39nm9kc8dgde1d83a384"
+    address: "cfxtest:ace0ea1x6st1spm1jwfces43tder2yewz2vtx8hxrt"
   },
   {
     contractName: "DMD",
@@ -173,7 +174,7 @@ const options = [
 ]
 
 // specify TransferToken.json address
-const routingContractAddress = "cfxtest:type.contract:acawv88xs994f2f7ur4g7mewtcptdk2mfy63vupcys"
+const routingContractAddress = "cfxtest:acdehmfd1dph74rd7zv981a4974xsxsgwps1ra107k"
 
 let config = {}
 options.forEach((option) => {
@@ -186,4 +187,10 @@ options.forEach((option) => {
   }
 })
 
-export { config, routingContractAddress };
+const routingContractConfig = {
+  abi: routing.abi,
+  bytecode: routing.bytecode,
+  address: routingContractAddress
+}
+
+export { config, routingContractConfig };
