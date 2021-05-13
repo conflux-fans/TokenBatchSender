@@ -30,7 +30,7 @@
         <el-table-column
           fixed
           prop="value"
-          label="转账代币数量（e18）"
+          label="转账代币数量（CFX）"
           width="300"
         ></el-table-column>
       </el-table>

@@ -21,23 +21,13 @@
             <el-button   class="full-width" round v-on:click="authorize">连接钱包</el-button>
           </el-col>
           <el-col :span="4" v-if="accountConnected">
-            <el-dropdown class="full-width" @command="handleCommand">
-              <el-button class="full-width" type="success">
-                已连接<i class="el-icon-arrow-down el-icon--right"></i>
+              <el-button class="full-width" type="success" @click="showAccount">
+                {{simplifiedAccount}}<i class="el-icon-check el-icon--right"></i>
               </el-button>
-              <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item command="showAccount">{{account}}</el-dropdown-item>
-                <el-dropdown-item command="showCfxBalance">CFX余额</el-dropdown-item>
-              </el-dropdown-menu>
-            </el-dropdown>
           </el-col>
-          <!-- <el-col :span="2" v-if="accountConnected" > 
-            <el-button class="full-width" type="warning" v-on:click="authorize">重新连接</el-button>
-          </el-col> -->
         </el-row>
       </el-header>
 
-      <!-- <el-aside width="200px">Aside</el-aside> -->
       <el-main class="main-background">
 
         <el-row type="flex" justify="center">
@@ -69,7 +59,7 @@
               </el-row>
 
               <el-row type="flex">
-                <el-col :span="7">代币余额（e18）</el-col>
+                <el-col :span="7">代币余额（CFX）</el-col>
                 <el-col :span="10">
                   <div class="full-width"> 
                     {{ queryingTokenBalance }}
@@ -159,7 +149,7 @@ export default {
       */
       // sdk: null,
 
-      // csv = {tos, vals} 为csv中提供的原始数据 其中vals单位为1e18
+      // csv = {tos, vals} 为csv中提供的原始数据 其中vals单位为CFX
       csv: null,
       account: null,
       selectedToken: "",
@@ -223,7 +213,14 @@ export default {
     queryingTokenBalance() {
       return this.tokenBalance === null ? "请连接钱包并选择代币种类" : this.sdk.Drip(this.tokenBalance).toCFX();
     },
-    
+    simplifiedAccount() {
+      if (!this.account) {
+        return null;
+      }
+      const prefix = this.account.substr(0,6)
+      const tail = this.account.substr(this.account.length-4)
+      return prefix + "..." + tail
+    },
     stateBackgroundStyle() {
       let style = "background: ";
       switch (this.txState) {
@@ -353,23 +350,23 @@ export default {
         // do nothing
       })
     },
-    showCfxBalance() {
-      this.$alert(
-        this.sdk.Drip(this.cfxBalance).toCFX(),
-        '当前账户CFX余额',
-        {
-          showClose: false,
-          showCancelButton: false,
-          showConfirmButton: false,
-          closeOnClickModal: true,
-          closeOnPressEscape: true,
-          callBack: ()=>{},
-        }
-      ).catch(()=>{
-        // 点击框外触发
-        // do nothing
-      })
-    },
+    // showCfxBalance() {
+    //   this.$alert(
+    //     this.sdk.Drip(this.cfxBalance).toCFX(),
+    //     '当前账户CFX余额',
+    //     {
+    //       showClose: false,
+    //       showCancelButton: false,
+    //       showConfirmButton: false,
+    //       closeOnClickModal: true,
+    //       closeOnPressEscape: true,
+    //       callBack: ()=>{},
+    //     }
+    //   ).catch(()=>{
+    //     // 点击框外触发
+    //     // do nothing
+    //   })
+    // },
     showTxState() {
       this.$alert(
         this.stateMessage,
@@ -387,18 +384,18 @@ export default {
         // do nothing
       })
     },
-    handleCommand(c) {
-      switch (c) {
-        case "showAccount":
-          this.showAccount();
-          break;
-        case "showCfxBalance":
-          this.showCfxBalance();
-          break;
-        default:
-          break;
-      }
-    },
+    // handleCommand(c) {
+    //   switch (c) {
+    //     case "showAccount":
+    //       this.showAccount();
+    //       break;
+    //     case "showCfxBalance":
+    //       this.showCfxBalance();
+    //       break;
+    //     default:
+    //       break;
+    //   }
+    // },
     // TODO: error handling (network mismatch etc)
     async updateTokenBalance() {
       // console.log(this.account)
