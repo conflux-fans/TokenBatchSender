@@ -57,17 +57,29 @@ export default {
   props: ["transactionInfo"],
   data() {
     return {
-      hash: this.transactionInfo.hash,
-      csv: this.transactionInfo.csv,
-      confirmDate: this.transactionInfo.confirmDate,
-      selectedToken: this.transactionInfo.selectedToken,
-      tokenAddress: this.transactionInfo.tokenAddress,
-      networkVersion: this.transactionInfo.networkVersion
     };
   },
   computed: {
+    hash() {
+      return this.transactionInfo.hash
+    },
+    csv() {
+      return this.transactionInfo.csv
+    },
+    confirmDate() {
+      return this.transactionInfo.confirmDate
+    },
+    selectedToken() {
+      return this.transactionInfo.selectedToken
+    },
+    tokenAddress() {
+      return this.transactionInfo.tokenAddress
+    },
+    networkVersion() {
+      return this.transactionInfo.networkVersion
+    },
     tableData() {
-      // if (csv == null) return null
+      if (this.csv == null) return null
       const tmp = [];
       for (let i = 0; i < this.csv.tos.length; i++) {
         tmp.push({
@@ -78,12 +90,15 @@ export default {
       return tmp;
     },
     amountSum() {
+      if (this.csv == null) return null
       return NP.plus(...this.csv.vals)
     },
     length() {
+      if (this.csv == null) return null
       return this.csv.tos.length
     },
     formattedDate() {
+      if (!this.confirmDate) return ""
       var date = new Date(this.confirmDate + 8 * 3600 * 1000); // 增加8小时
       return date.toJSON().substr(0, 19).replace('T', ' ');
     },

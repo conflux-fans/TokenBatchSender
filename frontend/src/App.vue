@@ -8,10 +8,10 @@
           <el-col :span="6">
             <label class="white-font bold-font">Conflux 批量转账</label>
           </el-col>
-          <el-col :offset="9" :span="2">
+          <!-- <el-col :offset="9" :span="2">
             <el-tag :effect="tagTheme" :type="stateType" @click="showTxState" style="cursor: pointer">{{ txState }}</el-tag>
-          </el-col>
-          <el-col :span="3">
+          </el-col> -->
+          <el-col :offset="11" :span="3">
             <el-tooltip effect="light" content="请在 Conflux Portal 中切换网络">
               <el-tag>{{networkText}}</el-tag>
             </el-tooltip>
@@ -110,6 +110,17 @@
             </csv-panel>
           </el-col>
         </el-row>
+        <el-row type="flex" justify="center" v-if="hasTask">
+          <el-col :span="20">
+            <current-transaction-panel
+              v-bind:latestTransactionInfo="latestTransactionInfo"
+              v-bind:tagTheme="tagTheme"
+              v-bind:stateType="stateType"
+              v-bind:txState="txState"
+              v-on:show-tx-state="showTxState"
+            ></current-transaction-panel>
+          </el-col>
+        </el-row>
         <el-row type="flex" justify="center">
           <el-col :span="20">
             <history-transaction-panel
@@ -142,11 +153,13 @@ import ErrorType from './enums/error-type'
 import Web3 from "web3";
 import CsvPanel from './components/CsvPanel.vue';
 import HistoryTransactionPanel from './components/HistoryTransactionPanel.vue';
+import CurrentTransactionPanel from './components/CurrentTransactionPanel.vue';
 
 export default {
   components: {
     CsvPanel,
-    HistoryTransactionPanel
+    HistoryTransactionPanel,
+    CurrentTransactionPanel
   },
   name: "App",
   // components: {
@@ -176,16 +189,23 @@ export default {
 
       isNativeToken: false,
 
-      txHash: null,
       txState: TxState.NoTask,
       transactionList: [],
+      latestTransactionInfo: {
+        hash: null,
+        csv: null,
+        selectedToken: null,
+        tokenAddress: null,
+        networkVersion: null,
+        confirmDate: null
+      },
       
       errors: {
         csvError: null,
         transactionError: null,
         balanceError: null
       },
-      tagTheme: "plain",
+      tagTheme: "dark",
 
       // options 的初始值不会被使用， 而是在初始化时由config决定
       options: [
@@ -277,7 +297,7 @@ export default {
           return (
             TxState.Executed +
             ", Not Confirmed yet. TransactionHash: " +
-            this.txHash
+            this.latestTransactionInfo.hash
           );
         default:
           return this.txState;
@@ -285,6 +305,10 @@ export default {
     },
     isFreeState() {
       return TxState.isFree(this.txState);
+    },
+
+    hasTask() {
+      return this.txState !== TxState.NoTask
     },
 
     accountConnected() {
@@ -455,6 +479,8 @@ export default {
       return this.sdk.Drip.fromCFX(cfx)
     },
     async transfer() {
+
+      this.resetLatestTransactionInfo()
       try {
         // 重新获取授权
         await this.authorize();
@@ -473,6 +499,8 @@ export default {
         console.log(sum.toString())
 
         let pendingTx;
+        this.latestTransactionInfo.csv = this.csv
+        this.latestTransactionInfo.networkVersion = this.networkVersion
 
         if (!this.isNativeToken) {
           const tx = this.contract.send(
@@ -493,6 +521,10 @@ export default {
             gasPrice: 1,
             gas: estimate.gasLimit,
           });
+
+          this.latestTransactionInfo.selectedToken = this.selectedToken
+          this.latestTransactionInfo.tokenAddress = this.contract.address
+          
         } else {
           const tx = this.routingContract.send(
             // this.fromCfxToDrip(this.csv.vals.reduce((a, b) => a + b, 0)),
@@ -511,6 +543,9 @@ export default {
             gasPrice: 1,
             gas: estimate.gasLimit,
           });
+
+          this.latestTransactionInfo.selectedToken = "原生CFX"
+          this.latestTransactionInfo.tokenAddress = this.routingContract.address
         }
 
         // this step will ask user for authorization
@@ -519,38 +554,32 @@ export default {
 
         this.notifyTxState()
         let receipt =  await pendingTx.executed()
-        this.txHash = receipt.transactionHash;
+        this.latestTransactionInfo.hash = receipt.transactionHash;
         this.txState = TxState.Executed;
 
         
         await this.updateTokenBalance();
 
-        if (this.DEBUG){
-          this.transactionList.push({
-            hash: this.txHash,
-            csv: this.csv,
-            confirmDate: Date.now(),
-            selectedToken: this.isNativeToken ? "原生CFX" : this.selectedToken,
-            tokenAddress: this.isNativeToken ? this.routingContract.address : this.contract.address,
-            networkVersion: this.networkVersion
-          })
-        }
+        // if (this.DEBUG){
+        //   this.transactionList.push({
+        //     hash: this.txHash,
+        //     csv: this.csv,
+        //     confirmDate: Date.now(),
+        //     selectedToken: this.isNativeToken ? "原生CFX" : this.selectedToken,
+        //     tokenAddress: this.isNativeToken ? this.routingContract.address : this.contract.address,
+        //     networkVersion: this.networkVersion
+        //   })
+        // }
         this.notifyTxState()
         receipt = await pendingTx.confirmed()
+        this.latestTransactionInfo.confirmDate = Date.now()
 
-        if (!this.DEBUG){
-          this.transactionList.push({
-            hash: this.txHash,
-            csv: this.csv,
-            confirmDate: Date.now(),
-            selectedToken: this.isNativeToken ? "原生CFX" : this.selectedToken,
-            tokenAddress: this.isNativeToken ? this.routingContract.address : this.contract.address,
-            networkVersion: this.networkVersion
-          })
-        }
+        // if (!this.DEBUG){
+        // deep copy
+        this.transactionList.push(JSON.parse(JSON.stringify(this.latestTransactionInfo)))
+        // }
         
 
-        this.txHash = receipt.transactionHash;
         this.txState = TxState.Confirmed;
         this.notifyTxState()
 
@@ -608,6 +637,16 @@ export default {
     },
     resetTransactionList() {
       this.transactionList = [];
+    },
+    resetLatestTransactionInfo() {
+      this.latestTransactionInfo = {
+        hash: null,
+        csv: null,
+        selectedToken: null,
+        tokenAddress: null,
+        networkVersion: null,
+        confirmDate: null
+      }
     }
   },
 };
