@@ -136,6 +136,7 @@
 
 <script>
 import { config, routingContractConfig } from "./contracts/contracts-config";
+import { getScanHtml } from './utils/utils.js'
 import TxState from "./enums/tx-state";
 import ErrorType from './enums/error-type'
 import Web3 from "web3";
@@ -355,7 +356,7 @@ export default {
     },
     showAccount() {
       this.$alert(
-        this.account,
+        this.account + '<br>' + getScanHtml(this.account, "address", this.networkVersion, "在 ConfluxScan 上查看"),
         '当前账户地址',
         {
           showClose: false,
@@ -363,6 +364,7 @@ export default {
           showConfirmButton: false,
           closeOnClickModal: true,
           closeOnPressEscape: true,
+          dangerouslyUseHTMLString: true
           // callBack: ()=>{}
         }
       ).catch(()=>{
@@ -529,7 +531,8 @@ export default {
             csv: this.csv,
             confirmDate: Date.now(),
             selectedToken: this.isNativeToken ? "原生CFX" : this.selectedToken,
-            tokenAddress: this.isNativeToken ? "null" : this.contract.address,
+            tokenAddress: this.isNativeToken ? this.routingContract.address : this.contract.address,
+            networkVersion: this.networkVersion
           })
         }
         this.notifyTxState()
@@ -541,7 +544,8 @@ export default {
             csv: this.csv,
             confirmDate: Date.now(),
             selectedToken: this.isNativeToken ? "原生CFX" : this.selectedToken,
-            tokenAddress: this.isNativeToken ? "null" : this.contract.address,
+            tokenAddress: this.isNativeToken ? this.routingContract.address : this.contract.address,
+            networkVersion: this.networkVersion
           })
         }
         
