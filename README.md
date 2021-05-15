@@ -1,3 +1,5 @@
+# TokenBatchSender
+
 - [TokenBatchSender](#tokenbatchsender)
   - [Setup](#setup)
   - [Contracts](#contracts)
@@ -11,7 +13,7 @@
       - [Compiles and minifies for production](#compiles-and-minifies-for-production)
     - [Dapp input csv file format](#dapp-input-csv-file-format)
   - [Dapp usage](#dapp-usage)
-# TokenBatchSender
+
 TokenBatchSender is a Dapp for batch sending cfx token and erc777 token
 
 English | [简体中文](./README-CN.md)
@@ -19,6 +21,7 @@ English | [简体中文](./README-CN.md)
 ## Setup
 
 Run
+
 ``` bash
 npm install
 
@@ -38,14 +41,17 @@ Compiled contracts are provided in dist folder `/build/contracts`.
 ### Compile Contracts Manually
 
 You need to change `node_modules/@openzeppelin/contracts/token/ERC777/ERC777.sol` line33 to
+
 ``` solidity
 IERC1820Registry constant internal _ERC1820_REGISTRY = IERC1820Registry(0x88887eD889e776bCBe2f0f9932EcFaBcDfCd1820);
 ```
+
 Address of ERC1820 on Conflux is different from that of Ethereum. 
 
 `DMDToken.sol` and `GLDToken.sol` are ERC777 sample contracts used for testing.`GLD20.sol` is a sample ERC20 contract. 
 
 After that, run
+
 ``` bash
 // truffle or cfxtruffle is required
 truffle compile
@@ -54,7 +60,6 @@ truffle compile
 
 cfxtruffle compile
 ```
-
 
 ### Deploy contracts
 
@@ -95,23 +100,26 @@ const routingContractAddress = "blabla"
 ```
 
 ### Run Dapp
+
 #### Compiles and hot-reloads for development
 
-```
+``` bash
 cd ./frontend
 npm run serve
 ```
 
 #### Compiles and minifies for production
 
-```
+``` bash
 cd ./frontend
 npm run build
 ```
 
 ### Dapp input csv file format
+
 Dapp input csv is an n-row-2-column csv.
 An example is provided in `./frontend/src/example/example.csv`
+
 ``` csv
 // address, token to transfer
 0x1e0cc11e4dc7208e74e20ce3060fdffc88680514, 1300
@@ -119,6 +127,7 @@ An example is provided in `./frontend/src/example/example.csv`
 ```
 
 ## Dapp usage
+
 1. connect to your wallet
 2. select token
 3. select csv [Dapp input csv file format](#dapp-input-csv-file-format)
