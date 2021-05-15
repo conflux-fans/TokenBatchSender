@@ -14,7 +14,7 @@
         </div>
         <div class="el-upload__tip" slot="tip">只能解析csv格式文件</div>
         <div class="el-upload__tip" slot="tip">
-          每行为一组数据，第一列为地址，第二列为转账代币数量（单位为CFX）
+          每行为一组数据，第一列为地址，第二列为转账代币数量
         </div>
         <div class="el-upload__tip" slot="tip">
           查看<a href="./example.csv">示例文件</a>
@@ -41,7 +41,7 @@
         <el-table-column
           fixed
           prop="value"
-          label="转账代币数量（CFX）"
+          label="转账代币数量"
           width="300"
         ></el-table-column>
       </el-table>

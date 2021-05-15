@@ -75,7 +75,7 @@
               </el-row>
 
               <el-row type="flex">
-                <el-col :span="7">代币余额（CFX）</el-col>
+                <el-col :span="7">代币余额</el-col>
                 <el-col :span="10">
                   <div class="full-width"> 
                     {{ queryingTokenBalance }}
