@@ -101,7 +101,6 @@
               v-bind:csv="csv"
               v-bind:isFreeState="isFreeState"
               v-bind:networkVersion="networkVersion"
-              v-bind:sdk="sdk"
               v-bind:csvError="errors['csvError']"
               v-on:process-error="processError"
               v-on:set-csv="setCsv"
@@ -459,7 +458,7 @@ export default {
         await this.authorize();
         const data = this.web3.eth.abi.encodeParameters(
           ["address[]", "uint256[]"],
-          [this.csv.tos, this.csv.vals.map(element => this.fromCfxToDrip(element).toString())]
+          [this.csv.tos.map(addr => this.sdk.format.hexAddress(addr)), this.csv.vals.map(element => this.fromCfxToDrip(element).toString())]
         );
         
         // 高精度 e.g.

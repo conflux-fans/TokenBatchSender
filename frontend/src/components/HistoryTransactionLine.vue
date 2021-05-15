@@ -24,7 +24,7 @@
         <el-table-column
           fixed
           prop="address"
-          label="转账地址(16进制)"
+          label="转账地址"
           width="400"
         ></el-table-column>
         <el-table-column

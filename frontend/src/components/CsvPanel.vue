@@ -35,7 +35,7 @@
         <el-table-column
           fixed
           prop="address"
-          label="转账地址(16进制)"
+          label="转账地址"
           width="400"
         ></el-table-column>
         <el-table-column
@@ -78,9 +78,17 @@ import NP from 'number-precision'
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'networkVersion', 'sdk'],
+  props: ['csv', 'isFreeState', 'csvError', 'networkVersion'],
   data() {
-    return {};
+    return {
+    };
+  },
+  mounted() {
+    this.$nextTick(function() {
+      if (typeof window.conflux !== "undefined") {
+        this.sdk = window.ConfluxJSSDK;
+      }
+    });
   },
   methods: {
     netWorkType(address) {
@@ -141,7 +149,7 @@ export default {
           if (!this.isValidAddressForNet(addr) || isNaN(val)) {
             csv_msg.push('CSV row ' + (i+1) + ' address/value is not valid: ' + row)
           } else {
-            tos.push(this.sdk.format.hexAddress(addr));
+            tos.push(this.sdk.format.address(addr, parseInt(this.networkVersion)));
             vals.push(parseFloat(val));
           }
         }
@@ -160,7 +168,6 @@ export default {
           vals
         })
         
-        console.log(this.csv);
       } catch (err) {
         err._type = ErrorType.CsvError;
         this.$emit('process-error', err);
