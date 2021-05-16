@@ -29,188 +29,24 @@
       </el-header>
 
       <el-main class="main-background">
-
-        <el-row type="flex" justify="center">
-          <el-col :span="20">
-            <el-card shadow="hover">
-              <el-row v-if="!isNativeToken">
-                <el-col :span="7">代币选择</el-col>
-                <el-col :span="11">
-                  <el-select
-                    v-model="selectedToken"
-                    filterable
-                    placeholder="下拉选择或键入搜索"
-                    @change="changeToken"
-                    size="mini"
-                    class="full-width"
-                    :disabled="!isFreeState"
-                  >
-                    <el-option
-                      v-for="item in options"
-                      :key="item.value"
-                      :label="item.label"
-                      :value="item.value"
-                      :disabled="item.disabled"
-                    >
-                    </el-option>
-                  </el-select>
-                </el-col>
-                <el-col :offset="1" :span="3">
-                  <el-button type="info" size="mini" :disabled="!isFreeState" @click="isNativeToken ^= 1">
-                    切换至原生代币
-                  </el-button>
-                </el-col>
-              </el-row>
-
-              <el-row v-if="isNativeToken">
-                <el-col :span="7">代币选择</el-col>
-                <el-col :span="11">
-                  原生CFX
-                </el-col>
-                <el-col :offset="1" :span="3">
-                  <el-button type="info" size="mini" :disabled="!isFreeState" @click="isNativeToken ^= 1">
-                    切换至ERC777代币
-                  </el-button>
-                </el-col>
-              </el-row>
-
-              <el-row type="flex">
-                <el-col :span="7">代币余额</el-col>
-                <el-col :span="10">
-                  <div class="full-width"> 
-                    {{ queryingTokenBalance }}
-                  </div>
-                </el-col>
-                <el-col :span="1">
-                  <el-tooltip v-if="tokenBalance" class="item" effect="dark" :content="tokenBalance" placement="right">
-                    <div class="right-align bold-font" >
-                      <label class="main-background">
-                      ...
-                      </label>
-                    </div>
-                  </el-tooltip>
-                </el-col>
-              </el-row>
-            </el-card>
-          </el-col>
-        </el-row>
-
-        <el-row type="flex" justify="center">
-          <el-col :span="20">
-            <csv-panel 
-              v-bind:csv="csv"
-              v-bind:isFreeState="isFreeState"
-              v-bind:networkVersion="networkVersion"
-              v-bind:csvError="errors['csvError']"
-              v-on:process-error="processError"
-              v-on:set-csv="setCsv"
-              v-on:reset-csv="resetCsv"
-              v-on:transfer="transfer"
-            >
-            </csv-panel>
-          </el-col>
-        </el-row>
-        <el-row type="flex" justify="center" v-if="hasTask">
-          <el-col :span="20">
-            <current-transaction-panel
-              v-bind:latestTransactionInfo="latestTransactionInfo"
-              v-bind:tagTheme="tagTheme"
-              v-bind:stateType="stateType"
-              v-bind:txState="txState"
-              v-on:show-tx-state="showTxState"
-            ></current-transaction-panel>
-          </el-col>
-        </el-row>
-        <el-row type="flex" justify="center">
-          <el-col :span="20">
-            <history-transaction-panel
-              v-bind:transactionList="transactionList"
-              v-on:reset-transaction-list="resetTransactionList"
-            ></history-transaction-panel>
-          </el-col>
-        </el-row>
+        <batch-sender></batch-sender>
       </el-main>
-
-      <!-- <el-footer
-      :style="stateBackgroundStyle"
-      >
-        <el-row type="flex" align="middle" class="full-height bold-font" >
-          <el-tag :effect="tagTheme" type="info" class="bold-font">Transaction state </el-tag>
-          <el-tag :effect="tagTheme" :type="stateType">{{ txState }}</el-tag>
-          <el-tag :effect="tagTheme" v-if="stateMessage" type="info">{{ stateMessage }}</el-tag>
-        </el-row>
-
-      </el-footer> -->
     </el-container>
   </div>
 </template>
 
 <script>
-import { config, routingContractConfig } from "./contracts/contracts-config";
-import { getScanHtml, hexStringToArrayBuffer } from './utils/utils.js'
-import TxState from "./enums/tx-state";
-import ErrorType from './enums/error-type'
-import Web3 from "web3";
-import CsvPanel from './components/CsvPanel.vue';
-import HistoryTransactionPanel from './components/HistoryTransactionPanel.vue';
-import CurrentTransactionPanel from './components/CurrentTransactionPanel.vue';
+import { getScanHtml } from './utils/utils.js'
+import BatchSender from './components/BatchSender.vue';
 
 export default {
   components: {
-    CsvPanel,
-    HistoryTransactionPanel,
-    CurrentTransactionPanel
+    BatchSender
   },
   name: "App",
   data() {
     return {
-      // csv = {tos, vals} 为csv中提供的原始数据 其中vals单位为CFX
-      csv: null,
-      selectedToken: "",
-
-      contract: null,
-      tokenBalance: null,
-
-      isNativeToken: false,
-
-      txState: TxState.NoTask,
-      transactionList: [],
-      latestTransactionInfo: {
-        hash: null,
-        csv: null,
-        selectedToken: null,
-        tokenAddress: null,
-        networkVersion: null,
-        confirmDate: null
-      },
-      
-      errors: {
-        csvError: null,
-        transactionError: null,
-        balanceError: null
-      },
-      tagTheme: "dark",
-
-      // options 的初始值不会被使用， 而是在初始化时由config决定
-      options: [
-        {
-          value: "GLDToken", 
-          label: "测试Token GLD",
-        },
-        {
-          value: "选项2",
-          label: "cEth",
-          disabled: true,
-        },
-        {
-          value: "DMDToken", 
-          label: "测试Token DMD",
-        },
-      ],
-      config: null,
-      routingContract: null,
-
-      DEBUG: process.env.NODE_ENV !== 'production'
+      // DEBUG: process.env.NODE_ENV !== 'production'
     };
   },
   computed: {
@@ -229,9 +65,6 @@ export default {
     cfxBalance() {
       return this.$store.state.cfxBalance
     },
-    csvErrorMessage() {
-      return this.errors['csvError']?.message;
-    },
     networkText() {
       switch (this.conflux?.networkVersion) {
         case '1029':
@@ -247,78 +80,14 @@ export default {
     networkVersion() {
       return this.conflux?.networkVersion;
     },
-    queryingTokenBalance() {
-      if (this.isNativeToken) {
-        return this.cfxBalance === null ? "请连接钱包" : this.sdk.Drip(this.cfxBalance).toCFX();
-      }
-      return this.tokenBalance === null ? "请连接钱包并选择代币种类" : this.sdk.Drip(this.tokenBalance).toCFX();
-    },
     simplifiedAccount() {
       return this.$store.getters.simplifiedAccount
     },
-    stateBackgroundStyle() {
-      let style = "background: ";
-      switch (this.txState) {
-        case TxState.Error:
-          return style + "#F56C6C";
-        case TxState.Confirmed:
-          return style + "#67C23A"
-        case TxState.Executed:
-        case TxState.Pending:
-          return style + "#E6A23C"
-        default:
-          return this.style + "#909399";
-      }
-    },
-    stateType() {
-      switch (this.txState) {
-        case TxState.Error:
-          return 'danger';
-        case TxState.Confirmed:
-          return 'success'
-        case TxState.Executed:
-        case TxState.Pending:
-          return 'warning'
-        default:
-          return "info";
-      }
-    },
-    stateMessage() {
-      switch (this.txState) {
-        case TxState.Error:
-          return TxState.Error + ":" + this.errors['transactionError'].message;
-        case TxState.Executed:
-          return (
-            TxState.Executed +
-            ", Not Confirmed yet. TransactionHash: " +
-            this.latestTransactionInfo.hash
-          );
-        default:
-          return this.txState;
-      }
-    },
-    isFreeState() {
-      return TxState.isFree(this.txState);
-    },
-
-    hasTask() {
-      return this.txState !== TxState.NoTask
-    },
-
     accountConnected() {
       return this.$store.state.account !== null;
     },
   },
-  watch: {
-    transactionList(newVal) {
-      localStorage.transactionList = JSON.stringify(newVal)
-    }
-  },
   mounted() {
-    if (localStorage.transactionList) {
-      this.transactionList = JSON.parse(localStorage.transactionList)
-    }
-
     // executed immediately after page is fully loaded
     this.$nextTick(function() {
       if (typeof window.conflux !== "undefined") {
@@ -328,51 +97,26 @@ export default {
           sdk: window.ConfluxJSSDK
         })
 
-        this.config = config;
-        this.routingContract = this.confluxJS.Contract(routingContractConfig)
-        this.web3 = new Web3();
-        this.initTokenOptions(this.config);
-
         this.conflux.on("accountsChanged", (accounts) => {
           // console.log("accounts changed");
           if (accounts.length === 0) {
             this.$store.commit('resetAccount')
-            this.resetBalance()
+            this.$store.commit('resetCfxBalance')
           }
         })
       }
     });
   },
   methods: {
-    notifyTxState() {
-      this.$notify({
-        title: this.txState,
-        // message: this.stateM,
-        type: this.stateType,
-        offset: 60,
-        duration: 6000
-      })
-    },
-    
-    initTokenOptions(config) {
-      const tmp = []
-      Object.keys(config).forEach((option) => {
-        tmp.push({
-          value: option,
-          label: config[option].label,
-          disabled: config[option].disabled
-        })
-      })
-      this.options = tmp;
-    },
-    
     async authorize() {
       try {
         await this.$store.dispatch('authorize')
-        await this.updateTokenBalance();
       } catch (e) {
         this.processError(e)
       }
+    },
+    processError(err) {
+      this.$alert(err.message, "错误");
     },
     showAccount() {
       this.$alert(
@@ -392,253 +136,6 @@ export default {
         // do nothing
       })
     },
-    // showCfxBalance() {
-    //   this.$alert(
-    //     this.sdk.Drip(this.cfxBalance).toCFX(),
-    //     '当前账户CFX余额',
-    //     {
-    //       showClose: false,
-    //       showCancelButton: false,
-    //       showConfirmButton: false,
-    //       closeOnClickModal: true,
-    //       closeOnPressEscape: true,
-    //       callBack: ()=>{},
-    //     }
-    //   ).catch(()=>{
-    //     // 点击框外触发
-    //     // do nothing
-    //   })
-    // },
-    showTxState() {
-      this.$alert(
-        this.stateMessage,
-        '当前交易执行状态',
-        {
-          showClose: false,
-          showCancelButton: false,
-          showConfirmButton: false,
-          closeOnClickModal: true,
-          closeOnPressEscape: true,
-          callBack: ()=>{},
-        }
-      ).catch(()=>{
-        // 点击框外触发
-        // do nothing
-      })
-    },
-    // handleCommand(c) {
-    //   switch (c) {
-    //     case "showAccount":
-    //       this.showAccount();
-    //       break;
-    //     case "showCfxBalance":
-    //       this.showCfxBalance();
-    //       break;
-    //     default:
-    //       break;
-    //   }
-    // },
-    // TODO: error handling (network mismatch etc)
-    async updateTokenBalance() {
-      // console.log(this.account)
-      try{
-        if (!this.account || !this.contract) {
-          return;
-        }
-
-        const tokenBalance = (await this.contract.balanceOf(this.account)).toString();
-        this.tokenBalance = tokenBalance;
-        console.log("Account tokenBalance: ");
-        
-        console.log(tokenBalance);
-      } catch (e) {
-        e._type = ErrorType.BalanceError;
-        throw e;
-      }
-    },
-    async changeToken() {
-      console.log("Selected token changed to %s", this.selectedToken);
-      try {
-        this.contract = this.confluxJS.Contract(this.config[this.selectedToken]);
-        await this.updateTokenBalance();
-      } catch (e) {
-
-        this.processError(e)
-      }
-    },
-    fromCfxToDrip(cfx) {
-      return this.sdk.Drip.fromCFX(cfx)
-    },
-    async transfer() {
-
-      this.resetLatestTransactionInfo()
-      try {
-        // 重新获取授权
-        await this.authorize();
-        const data = this.web3.eth.abi.encodeParameters(
-          ["address[]", "uint256[]"],
-          [this.csv.tos.map(addr => this.sdk.format.hexAddress(addr)), this.csv.vals.map(element => this.fromCfxToDrip(element).toString())]
-        );
-        
-        // 高精度 e.g.
-        // 1.3+1.5+2.9+22.9 = 28.599999999999998
-        let sum = 0n;
-        for (let i = 0; i < this.csv.vals.length; ++i) {
-          // console.log(this.csv.vals[i])
-          sum += window.BigInt(this.fromCfxToDrip(this.csv.vals[i]))
-        }
-        console.log(sum.toString())
-
-        let pendingTx;
-        this.latestTransactionInfo.csv = this.csv
-        this.latestTransactionInfo.networkVersion = this.networkVersion
-
-        if (!this.isNativeToken) {
-          const tx = this.contract.send(
-            this.routingContract.address,
-            // this.fromCfxToDrip(this.csv.vals.reduce((a, b) => a + b, 0)),
-            sum.toString(),
-            hexStringToArrayBuffer(data)
-          );
-
-          const estimate = await tx.estimateGasAndCollateral({
-            from: this.account,
-          });
-          console.log(estimate);
-
-          pendingTx = tx.sendTransaction({
-            from: this.account,
-            value: 0,
-            gasPrice: 1,
-            gas: estimate.gasLimit,
-          });
-
-          this.latestTransactionInfo.selectedToken = this.selectedToken
-          this.latestTransactionInfo.tokenAddress = this.contract.address
-          
-        } else {
-          const tx = this.routingContract.send(
-            // this.fromCfxToDrip(this.csv.vals.reduce((a, b) => a + b, 0)),
-            hexStringToArrayBuffer(data)
-          );
-
-          const estimate = await tx.estimateGasAndCollateral({
-            from: this.account,
-            value: sum.toString(),
-          });
-          console.log(estimate);
-
-          pendingTx = tx.sendTransaction({
-            from: this.account,
-            value: sum.toString(),
-            gasPrice: 1,
-            gas: estimate.gasLimit,
-          });
-
-          this.latestTransactionInfo.selectedToken = "原生CFX"
-          this.latestTransactionInfo.tokenAddress = this.routingContract.address
-        }
-
-        // this step will ask user for authorization
-        await pendingTx;
-        this.txState = TxState.Pending;
-
-        this.notifyTxState()
-        let receipt =  await pendingTx.executed()
-        this.latestTransactionInfo.hash = receipt.transactionHash;
-        this.txState = TxState.Executed;
-
-        await this.$store.dispatch('updateCfxBalance')
-        await this.updateTokenBalance();
-
-        // if (this.DEBUG){
-        //   this.transactionList.push({
-        //     hash: this.txHash,
-        //     csv: this.csv,
-        //     confirmDate: Date.now(),
-        //     selectedToken: this.isNativeToken ? "原生CFX" : this.selectedToken,
-        //     tokenAddress: this.isNativeToken ? this.routingContract.address : this.contract.address,
-        //     networkVersion: this.networkVersion
-        //   })
-        // }
-        this.notifyTxState()
-        receipt = await pendingTx.confirmed()
-        this.latestTransactionInfo.confirmDate = Date.now()
-
-        // if (!this.DEBUG){
-        // deep copy
-        this.transactionList.push(JSON.parse(JSON.stringify(this.latestTransactionInfo)))
-        // }
-        
-
-        this.txState = TxState.Confirmed;
-        this.notifyTxState()
-
-        this.resetCsv()
-      } catch (err) {
-        err._type = ErrorType.TransactionError
-        this.processError(err);
-      }
-    },
-    processError(err) {
-      console.log(err);
-      console.log(err._type)
-      // balanceError csvError transactionError
-      switch (err._type) {
-        case ErrorType.BalanceError:
-          this.tokenBalance = null;
-          this.$store.commit('resetCfxBalance')
-          this.errors[err._type] = err
-          // this.errorType =err._type;
-          // this.errorMessage = err.message;
-          this.$alert(
-            err.message,
-            '错误'
-          )
-          break;
-        case ErrorType.CsvError: 
-          this.errors[err._type] = err
-          break;
-        case ErrorType.TransactionError:
-          this.errors[err._type] = err
-          this.txState = TxState.Error;
-          this.$alert(
-            err.message,
-            '交易执行错误'
-          )
-          break;
-        default:
-          // this.errorType =err._type;
-          // this.errorMessage = err.message;
-      }
-      // console.log(this.errors)
-    },
-    setCsv(csv) {
-      this.csv = csv
-    },
-    resetCsv() {
-      this.csv = null;
-      this.errors[ErrorType.CsvError] = null
-      // this.errorType = ""
-      // this.txState = TxState.NoTask;
-    },
-    resetBalance() {
-      this.$store.commit('resetCfxBalance')
-      this.tokenBalance = null;
-    },
-    resetTransactionList() {
-      this.transactionList = [];
-    },
-    resetLatestTransactionInfo() {
-      this.latestTransactionInfo = {
-        hash: null,
-        csv: null,
-        selectedToken: null,
-        tokenAddress: null,
-        networkVersion: null,
-        confirmDate: null
-      }
-    }
   },
 };
 </script>
