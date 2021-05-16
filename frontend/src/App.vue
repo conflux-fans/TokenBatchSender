@@ -162,30 +162,14 @@ export default {
     CurrentTransactionPanel
   },
   name: "App",
-  // components: {
-  //   HelloWorld
-  // }
   data() {
     return {
-      conflux: null,
-
-      /*
-        注意 下面这行的注释不能取消，否则会在执行await tx.confirmed() 的时候会报错  
-          path="", [big.js] Invalid number
-          错误由ConfluxSDK.format.fixed64抛出
-
-          没有下面这行时会有vue warn， 不过并不影响运行
-      */
-      // sdk: null,
-
       // csv = {tos, vals} 为csv中提供的原始数据 其中vals单位为CFX
       csv: null,
-      account: null,
       selectedToken: "",
 
       contract: null,
       tokenBalance: null,
-      cfxBalance: null,
 
       isNativeToken: false,
 
@@ -230,6 +214,21 @@ export default {
     };
   },
   computed: {
+    account() {
+      return this.$store.state.account
+    },
+    conflux() {
+      return this.$store.state.conflux
+    },
+    confluxJS() {
+      return this.$store.state.confluxJS
+    },
+    sdk() {
+      return this.$store.state.sdk
+    },
+    cfxBalance() {
+      return this.$store.state.cfxBalance
+    },
     csvErrorMessage() {
       return this.errors['csvError']?.message;
     },
@@ -255,12 +254,7 @@ export default {
       return this.tokenBalance === null ? "请连接钱包并选择代币种类" : this.sdk.Drip(this.tokenBalance).toCFX();
     },
     simplifiedAccount() {
-      if (!this.account) {
-        return null;
-      }
-      const prefix = this.account.substr(0,6)
-      const tail = this.account.substr(this.account.length-4)
-      return prefix + "..." + tail
+      return this.$store.getters.simplifiedAccount
     },
     stateBackgroundStyle() {
       let style = "background: ";
@@ -312,7 +306,7 @@ export default {
     },
 
     accountConnected() {
-      return this.account !== null;
+      return this.$store.state.account !== null;
     },
   },
   watch: {
@@ -328,9 +322,12 @@ export default {
     // executed immediately after page is fully loaded
     this.$nextTick(function() {
       if (typeof window.conflux !== "undefined") {
-        this.conflux = window.conflux;
-        this.confluxJS = window.confluxJS;
-        this.sdk = window.ConfluxJSSDK;
+        this.$store.commit('init', {
+          conflux: window.conflux,
+          confluxJS: window.confluxJS,
+          sdk: window.ConfluxJSSDK
+        })
+
         this.config = config;
         this.routingContract = this.confluxJS.Contract(routingContractConfig)
         this.web3 = new Web3();
@@ -339,7 +336,7 @@ export default {
         this.conflux.on("accountsChanged", (accounts) => {
           // console.log("accounts changed");
           if (accounts.length === 0) {
-            this.account = null
+            this.$store.commit('resetAccount')
             this.resetBalance()
           }
         })
@@ -371,8 +368,7 @@ export default {
     
     async authorize() {
       try {
-        const accounts = await this.conflux.enable();
-        this.account = accounts[0];
+        await this.$store.dispatch('authorize')
         await this.updateTokenBalance();
       } catch (e) {
         this.processError(e)
@@ -446,12 +442,7 @@ export default {
     async updateTokenBalance() {
       // console.log(this.account)
       try{
-        if (!this.account) {
-          return;
-        }
-        this.cfxBalance = (await this.confluxJS.getBalance(this.account)).toString();
-
-        if (!this.contract) {
+        if (!this.account || !this.contract) {
           return;
         }
 
@@ -557,7 +548,7 @@ export default {
         this.latestTransactionInfo.hash = receipt.transactionHash;
         this.txState = TxState.Executed;
 
-        
+        await this.$store.dispatch('updateCfxBalance')
         await this.updateTokenBalance();
 
         // if (this.DEBUG){
@@ -596,7 +587,7 @@ export default {
       switch (err._type) {
         case ErrorType.BalanceError:
           this.tokenBalance = null;
-          this.cfxBalance = null;
+          this.$store.commit('resetCfxBalance')
           this.errors[err._type] = err
           // this.errorType =err._type;
           // this.errorMessage = err.message;
@@ -627,12 +618,12 @@ export default {
     },
     resetCsv() {
       this.csv = null;
-      this.errors['csvError'] = null
+      this.errors[ErrorType.CsvError] = null
       // this.errorType = ""
       // this.txState = TxState.NoTask;
     },
     resetBalance() {
-      this.cfxBalance = null
+      this.$store.commit('resetCfxBalance')
       this.tokenBalance = null;
     },
     resetTransactionList() {

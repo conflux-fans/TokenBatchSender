@@ -30,5 +30,6 @@ npm run build
 - [x] 在 conflux scan 上查看
 - [x] 重构，划分component
 - [ ] 窄屏 分辨率调整
-- [ ] 测试网、主网 原生Token分开
-- [ ] 水龙头
+- [ ] 测试网与主网的原生Token分开
+- [ ] 水龙头 合约测试
+- [ ] vuex + vue-router

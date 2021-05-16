@@ -83,13 +83,6 @@ export default {
     return {
     };
   },
-  mounted() {
-    this.$nextTick(function() {
-      if (typeof window.conflux !== "undefined") {
-        this.sdk = window.ConfluxJSSDK;
-      }
-    });
-  },
   methods: {
     netWorkType(address) {
       return NetworkType.fromNetId(this.getNetId(address))
@@ -178,6 +171,9 @@ export default {
     }
   },
   computed: {
+    sdk() {
+      return this.$store.state.sdk
+    },
     fileUploaded() {
       return this.csv !== null;
     },
