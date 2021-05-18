@@ -96,14 +96,6 @@ export default {
           confluxJS: window.confluxJS,
           sdk: window.ConfluxJSSDK
         })
-
-        this.conflux.on("accountsChanged", (accounts) => {
-          // console.log("accounts changed");
-          if (accounts.length === 0) {
-            this.$store.commit('resetAccount')
-            this.$store.commit('resetCfxBalance')
-          }
-        })
       }
     });
   },

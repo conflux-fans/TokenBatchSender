@@ -32,14 +32,14 @@
                 :disabled="!isFreeState"
                 @click="isNativeToken ^= 1"
               >
-                切换至原生代币
+                切换至CFX转账
               </el-button>
             </el-col>
           </el-row>
 
           <el-row v-if="isNativeToken">
             <el-col :span="7">代币选择</el-col>
-            <el-col :span="11"> 原生CFX </el-col>
+            <el-col :span="11"> 测试网CFX </el-col>
             <el-col :offset="1" :span="3">
               <el-button
                 type="info"
@@ -47,7 +47,7 @@
                 :disabled="!isFreeState"
                 @click="isNativeToken ^= 1"
               >
-                切换至ERC777代币
+                切换至ERC777代币转账
               </el-button>
             </el-col>
           </el-row>
@@ -92,7 +92,8 @@
         </csv-panel>
       </el-col>
     </el-row>
-    <el-row type="flex" justify="center" v-if="hasTask">
+    <el-row type="flex" justify="center" v-if="!isFreeState">
+    <!-- <el-row type="flex" justify="center" v-if="hasTask"> -->
       <el-col :span="20">
         <current-transaction-panel
           v-bind:latestTransactionInfo="latestTransactionInfo"

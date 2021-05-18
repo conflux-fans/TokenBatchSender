@@ -6,7 +6,6 @@ Vue.use(Vuex)
 // store 负责记录全局的变量 
 // conflux confluxJS sdk 
 
-// 异步的维护工作在 App.vue 中进行
 // account 和 balance
 
 // store 不处理错误
@@ -29,14 +28,20 @@ const store = new Vuex.Store({
   },
   // mutations 只能为同步事务 异步操作在 actions 内完成
   mutations: {
-    // increment(state) {
-    //   state.count++
-    // }
     init(state, payload) {
       const { conflux, confluxJS, sdk } = payload;
       state.conflux = conflux;
       state.confluxJS = confluxJS;
       state.sdk = sdk;
+
+      state.conflux.on("accountsChanged", (accounts) => {
+        console.log("accounts changed");
+        console.log(accounts)
+        if (accounts.length === 0) {
+          store.commit('resetAccount')
+          store.commit('resetCfxBalance')
+        }
+      })
     },
     setAccount(state, payload) {
       state.account = payload.account

@@ -31,5 +31,8 @@ npm run build
 - [x] 重构，划分component
 - [ ] 窄屏 分辨率调整
 - [ ] 测试网与主网的原生Token分开
-- [ ] 水龙头 合约测试
+- [ ] 水龙头 搭建不同的repo
 - [ ] vuex + vue-router
+
+### feedback
+- [] cfx 名字
