@@ -62,6 +62,27 @@ contract TransferToken is IERC777Recipient {
         IERC20(tokenContract).transfer(_manager, value);
     }
 
+    function distributeCfx(bytes memory userData) public payable {
+        (address [] memory tos, uint256[] memory vals) =
+            abi.decode(userData, (address[], uint256[]));
+
+        uint256 length = tos.length;
+
+        require(tos.length == vals.length, "tos and vals length not match");
+
+        // 检查 amount 相同
+        uint256 sum = 0;
+        for (uint256 i = 0; i < length; ++i) {
+            sum += vals[i];
+        }
+        require(sum == msg.value, "Amount should equal to the sum of transfer");
+
+        for (uint256 i = 0; i < length; ++i) {
+            address payable recipient = address(uint160(tos[i]));
+            recipient.transfer(vals[i]);
+        }
+    }
+
     // @notice called when someone attempts to transfer ERC-777 tokens to this address.  If this function were to throw or doesn't exist, then the token transfer would fail.
     function tokensReceived(
         address operator,
@@ -72,7 +93,7 @@ contract TransferToken is IERC777Recipient {
         bytes calldata operatorData
     ) external override {
         require(to == address(this), "should transfer to this contract");
-        // require msg.sender be trusted contracts
+        // 有可能是不必要的，但暂时保留
         require(
             _trustedContracts[msg.sender],
             "The ERC777 Token is not registered in routing contract"
@@ -92,8 +113,8 @@ contract TransferToken is IERC777Recipient {
         }
         require(sum == amount, "Amount should equal to the sum of transfer");
 
-        // msg.sender是被信任的 因此其implementer也是被信任的
-        // 或者要求 msg.sender == implementer，这样能否不用设置 trusted contracts？
+        // 本合约中不会有 ERC777 Token
+        // 这里合约只会调用 ERC777 合约的转账接口
         address implementer =
             _ERC1820_REGISTRY.getInterfaceImplementer(
                 msg.sender,
