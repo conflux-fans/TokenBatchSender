@@ -17,6 +17,9 @@
           每行为一组数据，第一列为地址，第二列为转账代币数量
         </div>
         <div class="el-upload__tip" slot="tip">
+          不需要添加标题行，如果添加，标题行格式只能为 address, amount 
+        </div>
+        <div class="el-upload__tip" slot="tip">
           文件较大时请稍作等待
         </div>
         <div class="el-upload__tip" slot="tip">
@@ -65,7 +68,7 @@
         type="danger"
         v-if="fileUploaded"
         @click="$emit('transfer')"
-        :disabled="!isFreeState"
+        :disabled="!isFreeState || !selectedToken"
         style="display: inline-block"
         >批量转帐</el-button
       >
@@ -83,7 +86,7 @@ import Papa from 'papaparse'
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'networkVersion'],
+  props: ['csv', 'isFreeState', 'csvError', 'networkVersion', 'selectedToken'],
   data() {
     return {
       // isLoading: false
@@ -155,12 +158,16 @@ export default {
           try {
             if (results.length !== 2) {
               throw new Error('列数不为2')
-              // csv_msg.push('CSV第' + (i+1) + '行列数不为2: ' + results)
-              // continue
             }
 
             const addr = results[0].trim()
             const val = results[1].trim()
+
+            if (i === 0) {
+              if(addr === 'address' && val === 'amount') {
+                continue
+              }
+            }
 
             if (!this.isValidAddressForNet(addr) || isNaN(val)) {
               throw new Error('address/value is not valid')

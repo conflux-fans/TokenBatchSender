@@ -84,6 +84,7 @@
           v-bind:isFreeState="isFreeState"
           v-bind:networkVersion="networkVersion"
           v-bind:csvError="errors['csvError']"
+          v-bind:selectedToken="selectedToken"
           v-on:process-error="processError"
           v-on:set-csv="setCsv"
           v-on:reset-csv="resetCsv"
