@@ -409,7 +409,7 @@ export default {
           this.latestTransactionInfo.selectedToken = this.selectedToken;
           this.latestTransactionInfo.tokenAddress = this.contract.address;
         } else {
-          const tx = this.routingContract.send(
+          const tx = this.routingContract.distributeCfx(
             // this.fromCfxToDrip(this.csv.vals.reduce((a, b) => a + b, 0)),
             hexStringToArrayBuffer(data)
           );
@@ -427,7 +427,7 @@ export default {
             gas: estimate.gasLimit,
           });
 
-          this.latestTransactionInfo.selectedToken = "原生CFX";
+          this.latestTransactionInfo.selectedToken = "CFX";
           this.latestTransactionInfo.tokenAddress = this.routingContract.address;
         }
 

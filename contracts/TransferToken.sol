@@ -62,8 +62,7 @@ contract TransferToken is IERC777Recipient {
         IERC20(tokenContract).transfer(_manager, value);
     }
 
-    // TODO: 测试
-    function send(bytes memory userData) public payable {
+    function distributeCfx(bytes memory userData) public payable {
         (address [] memory tos, uint256[] memory vals) =
             abi.decode(userData, (address[], uint256[]));
 
