@@ -162,22 +162,6 @@ export default {
       },
       tagTheme: "dark",
 
-      // options 的初始值不会被使用， 而是在初始化时由config决定
-      options: [
-        {
-          value: "GLDToken",
-          label: "测试Token GLD",
-        },
-        {
-          value: "选项2",
-          label: "cEth",
-          disabled: true,
-        },
-        {
-          value: "DMDToken",
-          label: "测试Token DMD",
-        },
-      ],
       config: null,
       routingContract: null,
 
@@ -254,6 +238,27 @@ export default {
     accountConnected() {
       return this.$store.state.account !== null;
     },
+    options() {
+      if (!config) {
+        return [
+          {
+            label: null,
+            value: null
+          }
+        ]
+      }
+      const tmp = [];
+      Object.keys(config).forEach((option) => {
+        tmp.push({
+          value: option,
+          label: config[option].label,
+          // not strict equal
+          disabled: this.$store.state.sdk?.address?.decodeCfxAddress(config[option].address)?.netId != this.$store.state.conflux?.networkVersion,
+        });
+      });
+      // this.options = tmp;
+      return tmp
+    }
   },
   watch: {
     transactionList(newVal) {
@@ -278,7 +283,6 @@ export default {
       this.config = config;
       this.routingContract = window.confluxJS.Contract(routingContractConfig);
       this.web3 = new Web3();
-      this.initTokenOptions(this.config);
     });
   },
   methods: {
@@ -291,19 +295,6 @@ export default {
         duration: 6000,
       });
     },
-
-    initTokenOptions(config) {
-      const tmp = [];
-      Object.keys(config).forEach((option) => {
-        tmp.push({
-          value: option,
-          label: config[option].label,
-          disabled: config[option].disabled,
-        });
-      });
-      this.options = tmp;
-    },
-
     async authorize() {
       try {
         await this.$store.dispatch("authorize");

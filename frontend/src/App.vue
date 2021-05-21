@@ -99,6 +99,11 @@ export default {
       }
     });
   },
+  watch: {
+    networkVersion() {
+      this.selectedToken = ""
+    }
+  },
   methods: {
     async authorize() {
       try {

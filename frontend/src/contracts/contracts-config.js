@@ -18,13 +18,11 @@ const options = [
     contractName: "DMD",
     label: "测试Token DMD",
     address: "cfxtest:type.contract:acg4kb024uwn2cr9682s5ar0yk7zx2vuja20bwrx46",
-    disabled: false
   },
   {
     contractName: "BIGGLD",
     label: "测试Token BIG GLD",
     address: "cfxtest:type.contract:acd29kfdf8wyz41dczw1sj9jua9523047681m9rjfs",
-    disabled: false
   },
   {
     address: 'cfx:achc8nxj7r451c223m18w2dwjnmhkd6rxawrvkvsy2',
