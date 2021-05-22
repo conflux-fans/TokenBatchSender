@@ -141,7 +141,7 @@ export default {
       tagTheme: "dark",
 
       config: null,
-      routingContract: null,
+      routingContractConfig: null,
 
       DEBUG: process.env.NODE_ENV !== "production",
     };
@@ -188,6 +188,11 @@ export default {
       return this.tokenBalance
         ? this.sdk.Drip(this.tokenBalance).toCFX()
         : "";
+    },
+    routingContract() {
+      if (!this.confluxJS) return null
+
+      return this.confluxJS.Contract(routingContractConfig[parseInt(this.networkVersion)]);
     },
     stateType() {
       switch (this.txState) {
@@ -268,7 +273,7 @@ export default {
     // executed immediately after page is fully loaded
     this.$nextTick(function () {
       this.config = config;
-      this.routingContract = window.confluxJS.Contract(routingContractConfig);
+      this.routingContractConfig = routingContractConfig
       this.web3 = new Web3();
     });
   },
