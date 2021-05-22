@@ -196,9 +196,20 @@ export default {
           ? "请连接钱包"
           : this.sdk.Drip(this.cfxBalance).toCFX();
       }
-      return this.tokenBalance === null
-        ? "请连接钱包并选择代币种类"
-        : this.sdk.Drip(this.tokenBalance).toCFX();
+
+      if (!this.account) {
+        return "请连接钱包"
+      }
+
+      if(!this.selectedToken) {
+        return "请选择代币种类"
+      }
+
+      // tokenBalance is updated using async function
+      // check tokenBalance before presenting value
+      return this.tokenBalance
+        ? this.sdk.Drip(this.tokenBalance).toCFX()
+        : "";
     },
     stateType() {
       switch (this.txState) {
