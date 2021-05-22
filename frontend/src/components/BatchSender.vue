@@ -153,6 +153,8 @@ export default {
         tokenAddress: null,
         networkVersion: null,
         confirmDate: null,
+        from: null,
+        isNativeToken: null
       },
 
       errors: {
@@ -366,6 +368,9 @@ export default {
       try {
         // 重新获取授权
         await this.authorize();
+        this.latestTransactionInfo.from = this.account
+        this.latestTransactionInfo.isNativeToken = this.isNativeToken
+
         const data = this.web3.eth.abi.encodeParameters(
           ["address[]", "uint256[]"],
           [
@@ -431,6 +436,7 @@ export default {
           });
 
           this.latestTransactionInfo.selectedToken = "CFX";
+          // 传 cfx 时下面这个字段不会展示，但暂且先保留
           this.latestTransactionInfo.tokenAddress = this.routingContract.address;
         }
 
@@ -521,6 +527,8 @@ export default {
         tokenAddress: null,
         networkVersion: null,
         confirmDate: null,
+        from: null,
+        isNativeToken: null
       };
     },
   },
