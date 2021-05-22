@@ -91,7 +91,7 @@ export default {
     // executed immediately after page is fully loaded
     this.$nextTick(function() {
       if (typeof window.conflux !== "undefined") {
-        this.$store.commit('init', {
+        this.$store.dispatch('init', {
           conflux: window.conflux,
           confluxJS: window.confluxJS,
           sdk: window.ConfluxJSSDK

@@ -67,7 +67,17 @@ const store = new Vuex.Store({
     async updateCfxBalance(context) {
       const cfxBalance = (await context.state.confluxJS.getBalance(context.state.account)).toString()
       context.commit('setCfxBalance', {cfxBalance})
-    }
+    },
+    async init(context, payload) {
+      context.commit('init', payload);
+      const { selectedAddress } = context.state.conflux
+      if (selectedAddress) {
+        context.commit('setAccount', { 
+          account: selectedAddress
+        })
+        await context.dispatch('updateCfxBalance')
+      }
+    },
   }
 })
 
