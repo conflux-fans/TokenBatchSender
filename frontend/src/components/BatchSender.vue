@@ -3,7 +3,7 @@
     <el-row type="flex" justify="center">
       <el-col :span="20">
         <el-card shadow="hover">
-          <el-row v-if="!isNativeToken">
+          <el-row>
             <el-col :span="7">代币选择</el-col>
             <el-col :span="11">
               <el-select
@@ -25,32 +25,8 @@
                 </el-option>
               </el-select>
             </el-col>
-            <el-col :offset="1" :span="3">
-              <el-button
-                type="info"
-                size="mini"
-                :disabled="!isFreeState"
-                @click="isNativeToken ^= 1"
-              >
-                切换至CFX转账
-              </el-button>
-            </el-col>
           </el-row>
 
-          <el-row v-if="isNativeToken">
-            <el-col :span="7">代币选择</el-col>
-            <el-col :span="11"> 测试网CFX </el-col>
-            <el-col :offset="1" :span="3">
-              <el-button
-                type="info"
-                size="mini"
-                :disabled="!isFreeState"
-                @click="isNativeToken ^= 1"
-              >
-                切换至ERC777代币转账
-              </el-button>
-            </el-col>
-          </el-row>
 
           <el-row type="flex">
             <el-col :span="7">代币余额</el-col>
@@ -118,7 +94,7 @@
 
 <script>
 import { config, routingContractConfig } from "../contracts/contracts-config";
-import { hexStringToArrayBuffer } from "../utils/utils.js";
+import { hexStringToArrayBuffer, preciseSum } from "../utils/utils.js";
 import TxState from "../enums/tx-state";
 import ErrorType from "../enums/error-type";
 import Web3 from "web3";
@@ -252,15 +228,13 @@ export default {
       return this.$store.state.account !== null;
     },
     options() {
+      const tmp = [{
+        label: "CFX",
+        value: "CFX"
+      }];
       if (!config) {
-        return [
-          {
-            label: null,
-            value: null
-          }
-        ]
+        return tmp
       }
-      const tmp = [];
       Object.keys(config).forEach((option) => {
         tmp.push({
           value: option,
@@ -351,6 +325,14 @@ export default {
     },
     async changeToken() {
       console.log("Selected token changed to %s", this.selectedToken);
+
+      if(this.selectedToken === "CFX") {
+        this.isNativeToken = true
+        this.contract = null
+        return
+      }
+      this.isNativeToken = false
+
       try {
         this.contract = this.confluxJS.Contract(
           this.config[this.selectedToken]
@@ -383,12 +365,7 @@ export default {
 
         // 高精度 e.g.
         // 1.3+1.5+2.9+22.9 = 28.599999999999998
-        let sum = 0n;
-        for (let i = 0; i < this.csv.vals.length; ++i) {
-          // console.log(this.csv.vals[i])
-          sum += window.BigInt(this.fromCfxToDrip(this.csv.vals[i]));
-        }
-        console.log(sum.toString());
+        const sum = this.fromCfxToDrip(preciseSum(this.csv.vals));
 
         let pendingTx;
         this.latestTransactionInfo.csv = this.csv;
