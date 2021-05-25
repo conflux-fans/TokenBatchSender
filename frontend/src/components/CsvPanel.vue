@@ -169,13 +169,16 @@ export default {
               }
             }
 
-            if (!this.isValidAddressForNet(addr) || isNaN(val)) {
-              throw new Error('address/value is not valid')
-              // csv_msg.push('CSV row ' + (i+1) + ' address/value is not valid: ' + results)
-            } else {
-              tos.push(this.sdk.format.address(addr, parseInt(this.networkVersion)));
-              vals.push(parseFloat(val));
+            if (!this.isValidAddressForNet(addr)) {
+              throw new Error('address is not valid')
             }
+            if (isNaN(val)) {
+              throw new Error('value is not valid')
+            }
+
+            tos.push(this.sdk.format.address(addr, parseInt(this.networkVersion)));
+            vals.push(parseFloat(val));
+            
           } catch (e) {
             csv_msg.push(`ERROR: CSV row ${i+1} - ${e.message}`)
           }

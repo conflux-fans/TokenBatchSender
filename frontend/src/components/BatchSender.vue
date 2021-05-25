@@ -241,12 +241,15 @@ export default {
         return tmp
       }
       Object.keys(config).forEach((option) => {
-        tmp.push({
+        // not strict equal
+        if(this.$store.state.sdk?.address?.decodeCfxAddress(config[option].address)?.netId == this.$store.state.conflux?.networkVersion) {
+          tmp.push({
           value: option,
           label: config[option].label,
-          // not strict equal
-          disabled: this.$store.state.sdk?.address?.decodeCfxAddress(config[option].address)?.netId != this.$store.state.conflux?.networkVersion,
+          // disabled: this.$store.state.sdk?.address?.decodeCfxAddress(config[option].address)?.netId != this.$store.state.conflux?.networkVersion,
         });
+        }
+        
       });
       // this.options = tmp;
       return tmp

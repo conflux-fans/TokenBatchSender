@@ -40,6 +40,10 @@ const store = new Vuex.Store({
         if (accounts.length === 0) {
           store.commit('resetAccount')
           store.commit('resetCfxBalance')
+        } else {
+          const account = accounts[0]
+          store.commit('setAccount', {account})
+          store.dispatch('updateCfxBalance')
         }
       })
     },
@@ -70,13 +74,14 @@ const store = new Vuex.Store({
     },
     async init(context, payload) {
       context.commit('init', payload);
-      const { selectedAddress } = context.state.conflux
-      if (selectedAddress) {
-        context.commit('setAccount', { 
-          account: selectedAddress
-        })
-        await context.dispatch('updateCfxBalance')
-      }
+      console.log(payload.conflux.selectedAddress)
+      // const { selectedAddress } = payload.conflux
+      // if (selectedAddress) {
+      //   context.commit('setAccount', { 
+      //     account: selectedAddress
+      //   })
+      //   await context.dispatch('updateCfxBalance')
+      // }
     },
   }
 })
