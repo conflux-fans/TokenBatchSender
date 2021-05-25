@@ -21,6 +21,16 @@ const options = [
     contractName: "cUSDT",
   },
   {
+    address: "cfxtest:achkx35n7vngfxgrm7akemk3ftzy47t61yk5nn270s",
+    label: "FansCoin",
+    contractName: "FC-testnet",
+  },
+  {
+    address: "cfxtest:acdvm6k5jw211brxu944dwtcjzk1vr9zfydm8dnajx",
+    label: "conflux USDT",
+    contractName: "cUSDT-testnet",
+  },
+  {
     contractName: "GLD",
     label: "测试Token GLD",
     address: "cfxtest:ace0ea1x6st1spm1jwfces43tder2yewz2vtx8hxrt",
@@ -178,7 +188,7 @@ const options = [
 const testnetRoutingContractAddress =
   "cfxtest:acfx9x18b7f6fa5at8eg7j6f3b2bdax112fhspm4h8";
 const mainnetRoutingContractAddress =
-"cfxtest:acfx9x18b7f6fa5at8eg7j6f3b2bdax112fhspm4h8";
+"cfx:achen057u31ndkmkwm3e4mytj1mxxgaubu84m209rk";
 
 let config = {};
 options.forEach((option) => {
