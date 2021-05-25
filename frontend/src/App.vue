@@ -96,6 +96,10 @@ export default {
           confluxJS: window.confluxJS,
           sdk: window.ConfluxJSSDK
         })
+      } else {
+        this.$alert('前往安装 <a href="https://portal.conflux-chain.org/" target="_blank">ConfluxPortal</a>', '未检测到 Conflux Portal', {
+          dangerouslyUseHTMLString: true
+        });
       }
     });
   },
