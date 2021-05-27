@@ -1,3 +1,5 @@
+import NP from 'number-precision'
+
 const testNetUrl = "https://testnet.confluxscan.io"
 const mainNetUrl = "https://confluxscan.io"
 
@@ -46,8 +48,13 @@ function hexStringToArrayBuffer(hexString) {
   return array.buffer;
 }
 
+function preciseSum(arr) {
+  return arr.reduce((x, y) => NP.plus(x, y), 0)
+}
+
 export {
   getScanUrl,
   getScanHtml,
-  hexStringToArrayBuffer
+  hexStringToArrayBuffer,
+  preciseSum
 };

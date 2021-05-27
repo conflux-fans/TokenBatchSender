@@ -3,7 +3,7 @@
     <el-row type="flex" justify="center">
       <el-col :span="20">
         <el-card shadow="hover">
-          <el-row v-if="!isNativeToken">
+          <el-row>
             <el-col :span="7">代币选择</el-col>
             <el-col :span="11">
               <el-select
@@ -25,32 +25,8 @@
                 </el-option>
               </el-select>
             </el-col>
-            <el-col :offset="1" :span="3">
-              <el-button
-                type="info"
-                size="mini"
-                :disabled="!isFreeState"
-                @click="isNativeToken ^= 1"
-              >
-                切换至CFX转账
-              </el-button>
-            </el-col>
           </el-row>
 
-          <el-row v-if="isNativeToken">
-            <el-col :span="7">代币选择</el-col>
-            <el-col :span="11"> 测试网CFX </el-col>
-            <el-col :offset="1" :span="3">
-              <el-button
-                type="info"
-                size="mini"
-                :disabled="!isFreeState"
-                @click="isNativeToken ^= 1"
-              >
-                切换至ERC777代币转账
-              </el-button>
-            </el-col>
-          </el-row>
 
           <el-row type="flex">
             <el-col :span="7">代币余额</el-col>
@@ -84,6 +60,7 @@
           v-bind:isFreeState="isFreeState"
           v-bind:networkVersion="networkVersion"
           v-bind:csvError="errors['csvError']"
+          v-bind:selectedToken="selectedToken"
           v-on:process-error="processError"
           v-on:set-csv="setCsv"
           v-on:reset-csv="resetCsv"
@@ -117,7 +94,7 @@
 
 <script>
 import { config, routingContractConfig } from "../contracts/contracts-config";
-import { hexStringToArrayBuffer } from "../utils/utils.js";
+import { hexStringToArrayBuffer, preciseSum } from "../utils/utils.js";
 import TxState from "../enums/tx-state";
 import ErrorType from "../enums/error-type";
 import Web3 from "web3";
@@ -152,6 +129,8 @@ export default {
         tokenAddress: null,
         networkVersion: null,
         confirmDate: null,
+        from: null,
+        isNativeToken: null
       },
 
       errors: {
@@ -161,24 +140,8 @@ export default {
       },
       tagTheme: "dark",
 
-      // options 的初始值不会被使用， 而是在初始化时由config决定
-      options: [
-        {
-          value: "GLDToken",
-          label: "测试Token GLD",
-        },
-        {
-          value: "选项2",
-          label: "cEth",
-          disabled: true,
-        },
-        {
-          value: "DMDToken",
-          label: "测试Token DMD",
-        },
-      ],
       config: null,
-      routingContract: null,
+      routingContractConfig: null,
 
       DEBUG: process.env.NODE_ENV !== "production",
     };
@@ -211,9 +174,25 @@ export default {
           ? "请连接钱包"
           : this.sdk.Drip(this.cfxBalance).toCFX();
       }
-      return this.tokenBalance === null
-        ? "请连接钱包并选择代币种类"
-        : this.sdk.Drip(this.tokenBalance).toCFX();
+
+      if (!this.account) {
+        return "请连接钱包"
+      }
+
+      if(!this.selectedToken) {
+        return "请选择代币种类"
+      }
+
+      // tokenBalance is updated using async function
+      // check tokenBalance before presenting value
+      return this.tokenBalance
+        ? this.sdk.Drip(this.tokenBalance).toCFX()
+        : "";
+    },
+    routingContract() {
+      if (!this.confluxJS) return null
+
+      return this.confluxJS.Contract(routingContractConfig[parseInt(this.networkVersion)]);
     },
     stateType() {
       switch (this.txState) {
@@ -253,6 +232,28 @@ export default {
     accountConnected() {
       return this.$store.state.account !== null;
     },
+    options() {
+      const tmp = [{
+        label: "CFX",
+        value: "CFX"
+      }];
+      if (!config) {
+        return tmp
+      }
+      Object.keys(config).forEach((option) => {
+        // not strict equal
+        if(this.$store.state.sdk?.address?.decodeCfxAddress(config[option].address)?.netId == this.$store.state.conflux?.networkVersion) {
+          tmp.push({
+          value: option,
+          label: config[option].label,
+          // disabled: this.$store.state.sdk?.address?.decodeCfxAddress(config[option].address)?.netId != this.$store.state.conflux?.networkVersion,
+        });
+        }
+        
+      });
+      // this.options = tmp;
+      return tmp
+    }
   },
   watch: {
     transactionList(newVal) {
@@ -275,9 +276,8 @@ export default {
     // executed immediately after page is fully loaded
     this.$nextTick(function () {
       this.config = config;
-      this.routingContract = window.confluxJS.Contract(routingContractConfig);
+      this.routingContractConfig = routingContractConfig
       this.web3 = new Web3();
-      this.initTokenOptions(this.config);
     });
   },
   methods: {
@@ -290,19 +290,6 @@ export default {
         duration: 6000,
       });
     },
-
-    initTokenOptions(config) {
-      const tmp = [];
-      Object.keys(config).forEach((option) => {
-        tmp.push({
-          value: option,
-          label: config[option].label,
-          disabled: config[option].disabled,
-        });
-      });
-      this.options = tmp;
-    },
-
     async authorize() {
       try {
         await this.$store.dispatch("authorize");
@@ -346,6 +333,14 @@ export default {
     },
     async changeToken() {
       console.log("Selected token changed to %s", this.selectedToken);
+
+      if(this.selectedToken === "CFX") {
+        this.isNativeToken = true
+        this.contract = null
+        return
+      }
+      this.isNativeToken = false
+
       try {
         this.contract = this.confluxJS.Contract(
           this.config[this.selectedToken]
@@ -363,6 +358,9 @@ export default {
       try {
         // 重新获取授权
         await this.authorize();
+        this.latestTransactionInfo.from = this.account
+        this.latestTransactionInfo.isNativeToken = this.isNativeToken
+
         const data = this.web3.eth.abi.encodeParameters(
           ["address[]", "uint256[]"],
           [
@@ -375,12 +373,7 @@ export default {
 
         // 高精度 e.g.
         // 1.3+1.5+2.9+22.9 = 28.599999999999998
-        let sum = 0n;
-        for (let i = 0; i < this.csv.vals.length; ++i) {
-          // console.log(this.csv.vals[i])
-          sum += window.BigInt(this.fromCfxToDrip(this.csv.vals[i]));
-        }
-        console.log(sum.toString());
+        const sum = this.fromCfxToDrip(preciseSum(this.csv.vals));
 
         let pendingTx;
         this.latestTransactionInfo.csv = this.csv;
@@ -428,6 +421,7 @@ export default {
           });
 
           this.latestTransactionInfo.selectedToken = "CFX";
+          // 传 cfx 时下面这个字段不会展示，但暂且先保留
           this.latestTransactionInfo.tokenAddress = this.routingContract.address;
         }
 
@@ -518,6 +512,8 @@ export default {
         tokenAddress: null,
         networkVersion: null,
         confirmDate: null,
+        from: null,
+        isNativeToken: null
       };
     },
   },

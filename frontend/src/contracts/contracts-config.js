@@ -1,36 +1,51 @@
 // import ERC777 Token .json files
-import {default as ERC777} from "../../../build/contracts/ERC777.json";
-import {default as routing} from "../../../build/contracts/TransferToken.json";
+import { default as ERC777 } from "../../../build/contracts/ERC777.json";
+import { default as routing } from "../../../build/contracts/TransferToken.json";
 
 /* specify token to select in Dapp.
  contractName: primary key
  label: label displayed in Dapp frontend
  address: specify contract address
  disabled: disable option will be displayed as 'disabled' in Dapp frontend (defalut to false)
-*/ 
+*/
+
 const options = [
+  {
+    address: "cfx:achc8nxj7r451c223m18w2dwjnmhkd6rxawrvkvsy2",
+    label: "FansCoin",
+    contractName: "FC",
+  },
+  {
+    address: "cfx:acf2rcsh8payyxpg6xj7b0ztswwh81ute60tsw35j7",
+    label: "conflux USDT",
+    contractName: "cUSDT",
+  },
+  {
+    address: "cfxtest:achkx35n7vngfxgrm7akemk3ftzy47t61yk5nn270s",
+    label: "FansCoin",
+    contractName: "FC-testnet",
+  },
+  {
+    address: "cfxtest:acdvm6k5jw211brxu944dwtcjzk1vr9zfydm8dnajx",
+    label: "conflux USDT",
+    contractName: "cUSDT-testnet",
+  },
   {
     contractName: "GLD",
     label: "测试Token GLD",
-    address: "cfxtest:ace0ea1x6st1spm1jwfces43tder2yewz2vtx8hxrt"
+    address: "cfxtest:ace0ea1x6st1spm1jwfces43tder2yewz2vtx8hxrt",
   },
   {
     contractName: "DMD",
     label: "测试Token DMD",
     address: "cfxtest:type.contract:acg4kb024uwn2cr9682s5ar0yk7zx2vuja20bwrx46",
-    disabled: false
   },
   {
     contractName: "BIGGLD",
     label: "测试Token BIG GLD",
     address: "cfxtest:type.contract:acd29kfdf8wyz41dczw1sj9jua9523047681m9rjfs",
-    disabled: false
   },
-  {
-    address: 'cfx:achc8nxj7r451c223m18w2dwjnmhkd6rxawrvkvsy2',
-    label: 'FansCoin',
-    contractName: 'FC'
-  },
+
   // {
   //   address: 'cfx:achcuvuasx3t8zcumtwuf35y51sksewvca0h0hj71a',
   //   label: 'conflux MOON',
@@ -46,11 +61,7 @@ const options = [
   //   label: 'Wrapped Conflux',
   //   contractName: 'WCFX'
   // },
-  {
-    address: 'cfx:acf2rcsh8payyxpg6xj7b0ztswwh81ute60tsw35j7',
-    label: 'conflux USDT',
-    contractName: 'cUSDT'
-  },
+
   // {
   //   address: 'cfx:acdkyd8tmezzs6cvmfwtpkg7y9k8cnhdapfcganwt9',
   //   label: 'conflux AMP',
@@ -171,26 +182,36 @@ const options = [
   //   label: 'conflux Bytom minted',
   //   contractName: 'cMBTM'
   // }
-]
+];
 
 // specify TransferToken.json address
-const routingContractAddress = "cfxtest:acfx9x18b7f6fa5at8eg7j6f3b2bdax112fhspm4h8"
+const testnetRoutingContractAddress =
+  "cfxtest:acfx9x18b7f6fa5at8eg7j6f3b2bdax112fhspm4h8";
+const mainnetRoutingContractAddress =
+"cfx:achen057u31ndkmkwm3e4mytj1mxxgaubu84m209rk";
 
-let config = {}
+let config = {};
 options.forEach((option) => {
   config[option.contractName] = {
-      abi: ERC777.abi,
-      bytecode: ERC777.bytecode,
-      address: option.address,
-      label: option.label,
-      disabled: option.disabled
-  }
-})
+    abi: ERC777.abi,
+    bytecode: ERC777.bytecode,
+    address: option.address,
+    label: option.label,
+    disabled: option.disabled,
+  };
+});
 
 const routingContractConfig = {
-  abi: routing.abi,
-  bytecode: routing.bytecode,
-  address: routingContractAddress
-}
+  1: {
+    abi: routing.abi,
+    bytecode: routing.bytecode,
+    address: testnetRoutingContractAddress,
+  },
+  1029: {
+    abi: routing.abi,
+    bytecode: routing.bytecode,
+    address: mainnetRoutingContractAddress,
+  }
+};
 
 export { config, routingContractConfig };

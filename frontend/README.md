@@ -30,8 +30,6 @@ npm run build
 - [x] 在 conflux scan 上查看
 - [x] 重构，划分component
 - [ ] 窄屏 分辨率调整
-- [ ] 测试网与主网的原生Token分开
-- [ ] vuex + vue-router
-
-### feedback
-- [] cfx 名字
+- [x] 测试网与主网的原生Token分开
+- [x] vuex
+- [ ] 优化弹框样式

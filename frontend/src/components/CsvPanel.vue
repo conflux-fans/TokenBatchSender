@@ -17,6 +17,12 @@
           每行为一组数据，第一列为地址，第二列为转账代币数量
         </div>
         <div class="el-upload__tip" slot="tip">
+          不需要添加标题行，如果添加，标题行格式只能为 address, amount 
+        </div>
+        <div class="el-upload__tip" slot="tip">
+          文件较大时请稍作等待
+        </div>
+        <div class="el-upload__tip" slot="tip">
           查看<a href="./example.csv">示例文件</a>
         </div>
       </el-upload>
@@ -62,7 +68,7 @@
         type="danger"
         v-if="fileUploaded"
         @click="$emit('transfer')"
-        :disabled="!isFreeState"
+        :disabled="!isFreeState || !selectedToken"
         style="display: inline-block"
         >批量转帐</el-button
       >
@@ -73,14 +79,17 @@
 <script>
 import ErrorType from '../enums/error-type'
 import NetworkType from '../enums/network-type'
-import NP from 'number-precision'
+// import NP from 'number-precision'
+import { preciseSum } from '../utils/utils'
+import Papa from 'papaparse'
 
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'networkVersion'],
+  props: ['csv', 'isFreeState', 'csvError', 'networkVersion', 'selectedToken'],
   data() {
     return {
+      // isLoading: false
     };
   },
   methods: {
@@ -117,33 +126,61 @@ export default {
       }
     },
     handlePreview(file) {
+      // this.isLoading = true
       this.processCSV(file);
+      // this.isLoading = false
+
       // return false, then upload action will not be triggered
       return false;
     },
     async processCSV(file) {
       try {
         const c = await file.text();
-        console.log(c);
-        const rows = c.split("\n");
+        // console.log(c);
+        const rows = Papa.parse(c).data
+        console.log(rows)
+        //c.split("\n");
         let tos = [];
         let vals = [];
 
         let csv_msg = []
 
         for (let i = 0; i < rows.length; ++i) {
-          const row = rows[i];
-          const results = row.split(",");
+          // const row = rows[i];
+          
+          const results = rows[i];
           // sdk error message is confusing
           // tos.push(this.sdk.format.hexAddress(results[0].trim()));
-          const addr = results[0].trim()
-          const val = results[1].trim()
+          if (results.length === 1 && !results[0]) {
+            continue
+          }
 
-          if (!this.isValidAddressForNet(addr) || isNaN(val)) {
-            csv_msg.push('CSV row ' + (i+1) + ' address/value is not valid: ' + row)
-          } else {
+          try {
+            if (results.length !== 2) {
+              throw new Error('列数不为2')
+            }
+
+            const addr = results[0].trim()
+            const val = results[1].trim()
+
+            if (i === 0) {
+              if(addr === 'address' && val === 'amount') {
+                continue
+              }
+            }
+
+            if (!this.isValidAddressForNet(addr)) {
+              throw new Error('address is not valid')
+            }
+            if (isNaN(val)) {
+              throw new Error('value is not valid')
+            }
+
             tos.push(this.sdk.format.address(addr, parseInt(this.networkVersion)));
             vals.push(parseFloat(val));
+            
+          } catch (e) {
+            csv_msg.push(`ERROR: CSV row ${i+1} - ${e.message}`)
           }
         }
 
@@ -195,7 +232,11 @@ export default {
       return tmp;
     },
     amountSum() {
-      return NP.plus(...this.csv.vals)
+      // if (this.csv.vals.length === 0) {
+      //   return null
+      // }
+      return preciseSum(this.csv.vals)
+      // return this.csv.vals.reduce((x,y) => NP.plus(x, y), 0)
     },
     length() {
       return this.csv.tos.length
