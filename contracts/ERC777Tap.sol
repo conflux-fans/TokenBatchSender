@@ -20,7 +20,7 @@ contract ERC777Tap is ERC777 {
         _mint(msg.sender, initialSupply, "", "");
     }
 
-    function tap() public {
-        _mint(msg.sender, 1e20, "", "");
-    }
+    // function mint(uint256 amount) public {
+    //     _mint(msg.sender, 1e18 * amount, "", "");
+    // }
 }

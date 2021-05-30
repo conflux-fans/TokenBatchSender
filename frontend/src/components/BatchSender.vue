@@ -4,12 +4,12 @@
       <el-col :span="20">
         <el-card shadow="hover">
           <el-row>
-            <el-col :span="7">代币选择</el-col>
+            <el-col :span="7">{{ $t("message.selectToken") }}</el-col>
             <el-col :span="11">
               <el-select
                 v-model="selectedToken"
                 filterable
-                placeholder="下拉选择或键入搜索"
+                :placeholder="$t('message.selectText')"
                 @change="changeToken"
                 size="mini"
                 class="full-width"
@@ -29,7 +29,7 @@
 
 
           <el-row type="flex">
-            <el-col :span="7">代币余额</el-col>
+            <el-col :span="7">{{ $t("message.tokenBalance") }}</el-col>
             <el-col :span="10">
               <div class="full-width">
                 {{ queryingBalance }}
@@ -89,6 +89,16 @@
         ></history-transaction-panel>
       </el-col>
     </el-row>
+    <el-dialog
+        :visible.sync="txStateDialogVisible"
+        :title="$t('message.currentTransactionStatus')"
+        width="40%"
+        :show-close="false"
+      >
+        <el-row>
+          {{ stateMessage }}
+        </el-row>
+      </el-dialog>
   </div>
 </template>
 
@@ -142,6 +152,7 @@ export default {
 
       config: null,
       routingContractConfig: null,
+      txStateDialogVisible: false,
 
       DEBUG: process.env.NODE_ENV !== "production",
     };
@@ -171,23 +182,23 @@ export default {
     queryingBalance() {
       if (this.isNativeToken) {
         return this.cfxBalance === null
-          ? "请连接钱包"
+          ? this.$t("message.warning.connectionWarning")
           : this.sdk.Drip(this.cfxBalance).toCFX();
       }
 
       if (!this.account) {
-        return "请连接钱包"
+        return this.$t("message.warning.connectionWarning")
       }
 
       if(!this.selectedToken) {
-        return "请选择代币种类"
+        return this.$t("message.warning.tokenWarning")
       }
 
       // tokenBalance is updated using async function
       // check tokenBalance before presenting value
       return this.tokenBalance
         ? this.sdk.Drip(this.tokenBalance).toCFX()
-        : "";
+        : this.$t("message.onRequest");
     },
     routingContract() {
       if (!this.confluxJS) return null
@@ -299,17 +310,7 @@ export default {
       }
     },
     showTxState() {
-      this.$alert(this.stateMessage, "当前交易执行状态", {
-        showClose: false,
-        showCancelButton: false,
-        showConfirmButton: false,
-        closeOnClickModal: true,
-        closeOnPressEscape: true,
-        callBack: () => {},
-      }).catch(() => {
-        // 点击框外触发
-        // do nothing
-      });
+      this.txStateDialogVisible = true
     },
     // TODO: error handling (network mismatch etc)
     async updateTokenBalance() {
@@ -437,16 +438,6 @@ export default {
         await this.$store.dispatch("updateCfxBalance");
         await this.updateTokenBalance();
 
-        // if (this.DEBUG){
-        //   this.transactionList.push({
-        //     hash: this.txHash,
-        //     csv: this.csv,
-        //     confirmDate: Date.now(),
-        //     selectedToken: this.isNativeToken ? "原生CFX" : this.selectedToken,
-        //     tokenAddress: this.isNativeToken ? this.routingContract.address : this.contract.address,
-        //     networkVersion: this.networkVersion
-        //   })
-        // }
         this.notifyTxState();
         receipt = await pendingTx.confirmed();
         this.latestTransactionInfo.confirmDate = Date.now();
@@ -476,7 +467,7 @@ export default {
           this.tokenBalance = null;
           this.$store.commit("resetCfxBalance");
           this.errors[err._type] = err;
-          this.$alert(err.message, "错误");
+          this.$alert(err.message, this.$t('message.error.error'));
           break;
         case ErrorType.CsvError:
           this.errors[err._type] = err;
@@ -484,7 +475,7 @@ export default {
         case ErrorType.TransactionError:
           this.errors[err._type] = err;
           this.txState = TxState.Error;
-          this.$alert(err.message, "交易执行错误");
+          this.$alert(err.message, this.$t('message.error.transactionError'));
           break;
         default:
       }

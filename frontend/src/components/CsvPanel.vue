@@ -29,10 +29,10 @@
     </el-row>
     <el-row v-if="fileUploaded && !isCsvError" type="flex" justify="left">
       <el-col :span="6">
-          <div>转账代币总数: {{amountSum}}</div>
+          <div>{{ $t('message.transferSum') }}: {{amountSum}}</div>
         </el-col>
         <el-col :span="6">
-          <div>转账条数: {{length}}</div>
+          <div>{{$t('message.transferCount')}}: {{length}}</div>
         </el-col>
     </el-row>
 
@@ -41,13 +41,13 @@
         <el-table-column
           fixed
           prop="address"
-          label="转账地址"
+          :label="$t('message.address')"
           width="400"
         ></el-table-column>
         <el-table-column
           fixed
           prop="value"
-          label="转账代币数量"
+          :label="$t('message.tokenAmount')"
           width="300"
         ></el-table-column>
       </el-table>
@@ -62,7 +62,7 @@
         @click="resetCsv"
         :disabled="!isFreeState"
         style="display: inline-block"
-        >重置CSV文件</el-button
+        >{{$t('message.command.resetCsv')}}</el-button
       >
       <el-button
         type="danger"
@@ -70,7 +70,7 @@
         @click="$emit('transfer')"
         :disabled="!isFreeState || !selectedToken"
         style="display: inline-block"
-        >批量转帐</el-button
+        >{{$t('message.command.send')}}</el-button
       >
     </el-row>
     <!-- <el-button @click="testMethod"> test </el-button> -->
@@ -157,7 +157,7 @@ export default {
 
           try {
             if (results.length !== 2) {
-              throw new Error('列数不为2')
+              throw new Error('column count is not 2')
             }
 
             const addr = results[0].trim()

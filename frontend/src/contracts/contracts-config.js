@@ -26,7 +26,7 @@ const options = [
     contractName: "FC-testnet",
   },
   {
-    address: "cfxtest:acdvm6k5jw211brxu944dwtcjzk1vr9zfydm8dnajx",
+    address: "cfxtest:acab179g4xj369s16ufuaaku2bh6n52wwju2845cda",
     label: "conflux USDT",
     contractName: "cUSDT-testnet",
   },
@@ -35,17 +35,6 @@ const options = [
     label: "测试Token GLD",
     address: "cfxtest:ace0ea1x6st1spm1jwfces43tder2yewz2vtx8hxrt",
   },
-  {
-    contractName: "DMD",
-    label: "测试Token DMD",
-    address: "cfxtest:type.contract:acg4kb024uwn2cr9682s5ar0yk7zx2vuja20bwrx46",
-  },
-  {
-    contractName: "BIGGLD",
-    label: "测试Token BIG GLD",
-    address: "cfxtest:type.contract:acd29kfdf8wyz41dczw1sj9jua9523047681m9rjfs",
-  },
-
   // {
   //   address: 'cfx:achcuvuasx3t8zcumtwuf35y51sksewvca0h0hj71a',
   //   label: 'conflux MOON',
