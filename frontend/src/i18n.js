@@ -54,7 +54,17 @@ const messages = {
           end: " is required for Conflux Testnet Faucet",
         },
         executed: 'Transaction is executed, but not confirmed yet.',
-        historyTransactions: 'Transaction info is saved only after confirmation. These data will not be uploaded to any server'
+        historyTransactions: 'Transaction info is saved only after confirmation. These data will not be uploaded to any server',
+        csv: {
+          drag: 'Drag CSV here, or',
+          clickToUpload: 'click to upload',
+          resolve: 'Only CSV format is supported',
+          format: 'Each row is composed of 2 columns: address and transfer amount',
+          titleLine: 'Title line is not required. If added, title line MUST be "address, amount"',
+          big: 'May wait for a while for big CSV files',
+          view: 'Check ',
+          exampleFile: 'example file'
+        },
       }
     },
   },
@@ -113,7 +123,17 @@ const messages = {
             end: "",
           },
           executed: '交易已执行，但尚未确认',
-          historyTransactions: '本页未关闭时已确认的交易会被记录, 这些交易记录仅保存在用户本地'
+          historyTransactions: '本页未关闭时已确认的交易会被记录, 这些交易记录仅保存在用户本地',
+          csv: {
+            drag: '将CSV文件拖到此处，或',
+            clickToUpload: '点击上传',
+            resolve: '当前只支持CSV格式文件',
+            format: '每行为一组数据，第一列为地址，第二列为转账代币数量',
+            titleLine: '不需要添加标题行，如果添加，标题行格式只能为 address, amount',
+            big: '文件较大时请稍作等待',
+            view: '查看',
+            exampleFile: '示例文件'
+          },
         }
       }
   }

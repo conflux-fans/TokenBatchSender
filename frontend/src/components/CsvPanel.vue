@@ -2,7 +2,7 @@
   <el-card shadow="hover">
     <el-row type="flex">
       <el-upload
-        class="upload-demo"
+        class="upload-demo full-width"
         drag
         action="/hello"
         :before-upload="handlePreview"
@@ -10,20 +10,22 @@
       >
         <i class="el-icon-upload"></i>
         <div class="el-upload__text">
-          将CSV文件拖到此处，或<em>点击上传</em>
-        </div>
-        <div class="el-upload__tip" slot="tip">只能解析csv格式文件</div>
-        <div class="el-upload__tip" slot="tip">
-          每行为一组数据，第一列为地址，第二列为转账代币数量
+          {{$t('message.tooltip.csv.drag')}}<em>{{$t('message.tooltip.csv.clickToUpload')}}</em>
         </div>
         <div class="el-upload__tip" slot="tip">
-          不需要添加标题行，如果添加，标题行格式只能为 address, amount 
-        </div>
-        <div class="el-upload__tip" slot="tip">
-          文件较大时请稍作等待
-        </div>
-        <div class="el-upload__tip" slot="tip">
-          查看<a href="./example.csv">示例文件</a>
+          <el-row>{{$t('message.tooltip.csv.resolve')}}</el-row>
+          <el-row>
+            {{$t('message.tooltip.csv.format')}}
+          </el-row>
+          <el-row>
+            {{$t('message.tooltip.csv.titleLine')}}
+          </el-row>
+          <el-row>
+            {{$t('message.tooltip.csv.big')}}
+          </el-row>
+          <el-row>
+            {{$t('message.tooltip.csv.view')}}<a href="./example.csv">{{$t('message.tooltip.csv.exampleFile')}}</a>
+          </el-row>
         </div>
       </el-upload>
     </el-row>
@@ -37,7 +39,7 @@
     </el-row>
 
     <el-row v-if="fileUploaded && !isCsvError">
-      <el-table :data="tableData" height="283" v-loading="!isFreeState">
+      <el-table :data="tableData" height="283" v-loading="!isFreeState" stripe>
         <el-table-column
           fixed
           prop="address"
@@ -245,4 +247,14 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.upload-demo /deep/ .el-upload-dragger {
+    width: 100%;
+}
+.upload-demo /deep/ .el-upload{
+    width: 100%;
+}
+.el-upload__tip /deep/ .el-row {
+  margin: 2px;
+}
+</style>

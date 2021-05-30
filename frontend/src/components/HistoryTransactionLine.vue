@@ -28,7 +28,7 @@
     </el-row>
 
     <el-row>
-      <el-table :data="tableData" height="283">
+      <el-table :data="tableData" height="283" stripe>
         <el-table-column
           fixed
           prop="address"
