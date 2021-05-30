@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC777/ERC777.sol";
 
 // ERC777 sample contract with a tap
 // test needed
-contract ERC777Tap is ERC777 {
+contract ERC777ForTest is ERC777 {
   
     constructor(
         string memory name_,
@@ -18,6 +18,11 @@ contract ERC777Tap is ERC777 {
         public
     {
         _mint(msg.sender, initialSupply, "", "");
+    }
+
+    // 注意 这个实现是不合法的 这里只是为了测试
+    function decimals() public pure override returns (uint8) {
+        return 6;
     }
 
     // function mint(uint256 amount) public {

@@ -333,6 +333,7 @@ export default {
         ).toString();
         this.decimals = decimals;
       } catch (e) {
+        // 事实上 decimals() 接口为可选的实现项，因此需要考虑未实现decimals()的情况
         e._type = ErrorType.BalanceError;
         throw e;
       }
@@ -380,14 +381,16 @@ export default {
       }
     },
     fromDripToCfxWithDecimals(drip) {
-      // e.g. decimals = 17, deltaDecimal = 1
+      // e.g. decimals = 6, deltaDecimal = 12
       // then 1e18 token drip will be viewd as 1*10^1 token
       const deltaDecimal = 18 - this.decimals;
+      console.log(deltaDecimal);
+      console.log(this.sdk.Drip(drip).toCFX().toString());
       return moveDecimal(this.sdk.Drip(drip).toCFX().toString(), deltaDecimal);
     },
     fromCfxToDripWithDecimals(cfx) {
-      // e.g. decimals = 17, deltaDecimal = 1
-      // then 1 token is actually 1e17 drip, 
+      // e.g. decimals = 6, deltaDecimal = 12
+      // then 1 token is actually 1e6 drip, 
       const deltaDecimal = 18 - this.decimals;
       return this.sdk.Drip.fromCFX(moveDecimal(cfx, -deltaDecimal)).toString();
     },

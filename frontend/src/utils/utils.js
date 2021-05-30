@@ -57,11 +57,11 @@ function moveDecimal(num, deltaDecimal) {
 
   if (deltaDecimal >= 0) {
     for (let i = 0; i < deltaDecimal; ++i) {
-      rtn = NP.times(num, 10)
+      rtn = NP.times(rtn, 10)
     }
   } else {
     for (let i = 0; i < -deltaDecimal; ++i) {
-      rtn = NP.divide(num, 10)
+      rtn = NP.divide(rtn, 10)
     }
   }
   return rtn

@@ -35,6 +35,11 @@ const options = [
     label: "测试Token GLD",
     address: "cfxtest:ace0ea1x6st1spm1jwfces43tder2yewz2vtx8hxrt",
   },
+  {
+    contractName: "D6",
+    label: "测试Token Decimal6", // ERC777 的非法实现
+    address: "cfxtest:aca6v0d4k90ys8ymfuk1ay0hubs0h7yhdje2ht916e",
+  },
   // {
   //   address: 'cfx:achcuvuasx3t8zcumtwuf35y51sksewvca0h0hj71a',
   //   label: 'conflux MOON',
