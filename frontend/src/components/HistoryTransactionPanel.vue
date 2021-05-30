@@ -1,6 +1,6 @@
 <template>
   <el-card v-if="transactionList.length">
-    <div slot="header">
+    <div slot="header" class="bold-font">
       <span>{{ $t('message.historyTransactions') }}</span>
       <el-tooltip effect="light" :content="$t('message.tooltip.historyTransactions')">
         <i class="header-icon el-icon-info"></i>
@@ -17,8 +17,6 @@
         </div>
         <el-button style="float: right; padding: 5px" type="danger" slot="reference">{{$t('message.command.clearHistory')}}</el-button>
       </el-popover>
-
-      <!-- <el-button  style="float: right; padding: 3px 0" type="danger" @click="$emit('reset-transaction-list')">清空历史交易</el-button> -->
     </div>
     <el-collapse v-for="transactionInfo in reversedTransactionList"
         v-bind:key="transactionInfo.confirmDate">
@@ -32,12 +30,6 @@ import HistoryTransactionLine from './HistoryTransactionLine.vue';
 export default {
   components: { HistoryTransactionLine },
   name: 'HistoryTransactionPanel',
-  /*
-    transaction {
-      hash,
-      csv
-    }
-  */
   props: ['transactionList'],
   data() {
     return {

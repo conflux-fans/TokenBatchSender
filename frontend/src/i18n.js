@@ -56,14 +56,13 @@ const messages = {
         executed: 'Transaction is executed, but not confirmed yet.',
         historyTransactions: 'Transaction info is saved only after confirmation. These data will not be uploaded to any server',
         csv: {
-          drag: 'Drag CSV here, or',
+          drag: 'Drag CSV here, or ',
           clickToUpload: 'click to upload',
-          resolve: 'Only CSV format is supported',
-          format: 'Each row is composed of 2 columns: address and transfer amount',
+          resolve: 'Accepted: .csv',
+          format: 'Each row is composed of 2 columns: address and amount',
           titleLine: 'Title line is not required. If added, title line MUST be "address, amount"',
           big: 'May wait for a while for big CSV files',
-          view: 'Check ',
-          exampleFile: 'example file'
+          checkExample: 'Check example',
         },
       }
     },
@@ -127,12 +126,11 @@ const messages = {
           csv: {
             drag: '将CSV文件拖到此处，或',
             clickToUpload: '点击上传',
-            resolve: '当前只支持CSV格式文件',
+            resolve: '支持的格式：.csv',
             format: '每行为一组数据，第一列为地址，第二列为转账代币数量',
             titleLine: '不需要添加标题行，如果添加，标题行格式只能为 address, amount',
             big: '文件较大时请稍作等待',
-            view: '查看',
-            exampleFile: '示例文件'
+            checkExample: '查看示例',
           },
         }
       }

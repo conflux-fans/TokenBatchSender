@@ -19,7 +19,6 @@ import HistoryTransactionLine from './HistoryTransactionLine.vue';
 export default {
   components: { HistoryTransactionLine },
   name: 'CurrentTransactionPanel',
-  // confirmDate is left out
   props: ['latestTransactionInfo', 'tagTheme', "stateType", "txState"],
   data() {
     return {

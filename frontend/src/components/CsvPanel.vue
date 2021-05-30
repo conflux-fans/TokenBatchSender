@@ -8,12 +8,22 @@
         :before-upload="handlePreview"
         v-if="!fileUploaded && !isCsvError"
       >
-        <i class="el-icon-upload"></i>
+        <!-- <i class="el-icon-upload2" style="font-size: 8em"></i> -->
+        <i class="el-icon-upload" style="font-size: 8em"></i>
         <div class="el-upload__text">
           {{$t('message.tooltip.csv.drag')}}<em>{{$t('message.tooltip.csv.clickToUpload')}}</em>
         </div>
+        <el-row slot="tip" type="flex" justify="space-between">
+          <el-col :span=6>{{$t('message.tooltip.csv.resolve')}}</el-col>
+          <el-col :span=6 >
+            <div class="right-align">
+              <el-link href="./example.csv" type="info" target="_blank"
+                >{{$t('message.tooltip.csv.checkExample')}}<i class="el-icon-notebook-1"></i
+              ></el-link>
+            </div>
+          </el-col>
+        </el-row>
         <div class="el-upload__tip" slot="tip">
-          <el-row>{{$t('message.tooltip.csv.resolve')}}</el-row>
           <el-row>
             {{$t('message.tooltip.csv.format')}}
           </el-row>
@@ -22,9 +32,6 @@
           </el-row>
           <el-row>
             {{$t('message.tooltip.csv.big')}}
-          </el-row>
-          <el-row>
-            {{$t('message.tooltip.csv.view')}}<a href="./example.csv">{{$t('message.tooltip.csv.exampleFile')}}</a>
           </el-row>
         </div>
       </el-upload>
@@ -58,30 +65,36 @@
       <div v-html="csvErrorMessage" style="color:red"></div>
     </el-row>
     <el-row v-if="isCsvError || fileUploaded" style="text-align: left">
-      <el-button
-        type="info"
-        v-if="isCsvError || fileUploaded"
-        @click="resetCsv"
-        :disabled="!isFreeState"
-        style="display: inline-block"
-        >{{$t('message.command.resetCsv')}}</el-button
-      >
-      <el-button
-        type="danger"
-        v-if="fileUploaded"
-        @click="$emit('transfer')"
-        :disabled="!isFreeState || !selectedToken"
-        style="display: inline-block"
-        >{{$t('message.command.send')}}</el-button
-      >
+      <el-col :span=3>
+        <el-button
+          size="medium"
+          type="info"
+          v-if="isCsvError || fileUploaded"
+          @click="resetCsv"
+          :disabled="!isFreeState"
+          >{{$t('message.command.resetCsv')}}</el-button
+        >
+      </el-col>
+      <el-col :offset=2 :span=3>
+        <el-tooltip effect="light" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken) && Boolean(account)">
+          <div>
+            <el-button
+              size="medium"
+              type="danger"
+              v-if="fileUploaded"
+              @click="$emit('transfer')"
+              :disabled="!isFreeState || !selectedToken || !account"
+              >{{$t('message.command.send')}}</el-button
+            >
+          </div>
+        </el-tooltip>
+      </el-col>
     </el-row>
-    <!-- <el-button @click="testMethod"> test </el-button> -->
   </el-card>
 </template>
 <script>
 import ErrorType from '../enums/error-type'
 import NetworkType from '../enums/network-type'
-// import NP from 'number-precision'
 import { preciseSum } from '../utils/utils'
 import Papa from 'papaparse'
 
@@ -91,7 +104,6 @@ export default {
   props: ['csv', 'isFreeState', 'csvError', 'networkVersion', 'selectedToken'],
   data() {
     return {
-      // isLoading: false
     };
   },
   methods: {
@@ -128,9 +140,7 @@ export default {
       }
     },
     handlePreview(file) {
-      // this.isLoading = true
       this.processCSV(file);
-      // this.isLoading = false
 
       // return false, then upload action will not be triggered
       return false;
@@ -138,21 +148,15 @@ export default {
     async processCSV(file) {
       try {
         const c = await file.text();
-        // console.log(c);
         const rows = Papa.parse(c).data
         console.log(rows)
-        //c.split("\n");
+
         let tos = [];
         let vals = [];
-
         let csv_msg = []
 
         for (let i = 0; i < rows.length; ++i) {
-          // const row = rows[i];
-          
           const results = rows[i];
-          // sdk error message is confusing
-          // tos.push(this.sdk.format.hexAddress(results[0].trim()));
           if (results.length === 1 && !results[0]) {
             continue
           }
@@ -187,11 +191,7 @@ export default {
         }
 
         if(csv_msg.length !== 0) {
-          // console.log(csv_msg)
           const msg = csv_msg.join("<br>")
-          // console.log(msg)
-          // this.errorMessage = msg
-          // this.csvError = msg
           const tmp = new Error(msg)
           throw tmp
         }
@@ -210,6 +210,19 @@ export default {
     }
   },
   computed: {
+    disabledTooltip() {
+      if (!this.account) {
+        return this.$t("message.warning.connectionWarning")
+      }
+
+      if(!this.selectedToken) {
+        return this.$t("message.warning.tokenWarning")
+      }
+      return null
+    },
+    account() {
+      return this.$store.state.account
+    },
     sdk() {
       return this.$store.state.sdk
     },
@@ -234,11 +247,7 @@ export default {
       return tmp;
     },
     amountSum() {
-      // if (this.csv.vals.length === 0) {
-      //   return null
-      // }
       return preciseSum(this.csv.vals)
-      // return this.csv.vals.reduce((x,y) => NP.plus(x, y), 0)
     },
     length() {
       return this.csv.tos.length

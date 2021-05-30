@@ -264,14 +264,11 @@ export default {
         // not strict equal
         if(this.$store.state.sdk?.address?.decodeCfxAddress(config[option].address)?.netId == this.$store.state.conflux?.networkVersion) {
           tmp.push({
-          value: option,
-          label: config[option].label,
-          // disabled: this.$store.state.sdk?.address?.decodeCfxAddress(config[option].address)?.netId != this.$store.state.conflux?.networkVersion,
-        });
+            value: option,
+            label: config[option].label,
+          });
         }
-        
       });
-      // this.options = tmp;
       return tmp
     }
   },
@@ -304,7 +301,6 @@ export default {
     notifyTxState() {
       this.$notify({
         title: this.txState,
-        // message: this.stateM,
         type: this.stateType,
         offset: 60,
         duration: 6000,
@@ -338,7 +334,6 @@ export default {
         throw e;
       }
     },
-    // TODO: error handling (network mismatch etc)
     async updateTokenBalance() {
       // console.log(this.account)
       try {
@@ -420,6 +415,7 @@ export default {
         this.latestTransactionInfo.csv = this.csv;
         this.latestTransactionInfo.networkVersion = this.networkVersion;
 
+        // 根据选择的Token是否是CFX构造交易
         if (!this.isNativeToken) {
           const tx = this.contract.send(
             this.routingContract.address,
@@ -450,7 +446,7 @@ export default {
             from: this.account,
             value: sum.toString(),
           });
-          console.log(estimate);
+          // console.log(estimate);
 
           pendingTx = tx.sendTransaction({
             from: this.account,
@@ -480,12 +476,10 @@ export default {
         receipt = await pendingTx.confirmed();
         this.latestTransactionInfo.confirmDate = Date.now();
 
-        // if (!this.DEBUG){
         // deep copy
         this.transactionList.push(
           JSON.parse(JSON.stringify(this.latestTransactionInfo))
         );
-        // }
 
         this.txState = TxState.Confirmed;
         this.notifyTxState();
@@ -527,7 +521,6 @@ export default {
       this.errors[ErrorType.CsvError] = null;
     },
     resetBalance() {
-      // this.$store.commit("resetCfxBalance");
       this.tokenBalance = null;
     },
     resetTransactionList() {
