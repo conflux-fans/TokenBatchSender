@@ -52,9 +52,27 @@ function preciseSum(arr) {
   return arr.reduce((x, y) => NP.plus(x, y), 0)
 }
 
+function moveDecimal(num, deltaDecimal) {
+  let rtn = num;
+
+  if (deltaDecimal >= 0) {
+    for (let i = 0; i < deltaDecimal; ++i) {
+      rtn = NP.times(num, 10)
+    }
+  } else {
+    for (let i = 0; i < -deltaDecimal; ++i) {
+      rtn = NP.divide(num, 10)
+    }
+  }
+  return rtn
+}
+
+// window.NP = NP
+
 export {
   getScanUrl,
   getScanHtml,
   hexStringToArrayBuffer,
-  preciseSum
+  preciseSum,
+  moveDecimal,
 };

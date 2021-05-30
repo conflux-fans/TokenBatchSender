@@ -15,7 +15,7 @@
           <el-button size="mini" type="text" @click="visible = false">{{ $t('message.cancel') }}</el-button>
           <el-button type="danger" size="mini" @click="visible = false;$emit('reset-transaction-list')">{{ $t('message.ok') }}</el-button>
         </div>
-        <el-button style="float: right; padding: 3px 0" type="danger" slot="reference">{{$t('message.command.clearHistory')}}</el-button>
+        <el-button style="float: right; padding: 5px" type="danger" slot="reference">{{$t('message.command.clearHistory')}}</el-button>
       </el-popover>
 
       <!-- <el-button  style="float: right; padding: 3px 0" type="danger" @click="$emit('reset-transaction-list')">清空历史交易</el-button> -->

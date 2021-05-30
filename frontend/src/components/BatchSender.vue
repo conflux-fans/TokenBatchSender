@@ -3,9 +3,19 @@
     <el-row type="flex" justify="center">
       <el-col :span="20">
         <el-card shadow="hover">
-          <el-row>
-            <el-col :span="7">{{ $t("message.selectToken") }}</el-col>
-            <el-col :span="11">
+          <el-row class="bold-font">
+            <el-col :span="5">{{ $t("message.token") }}</el-col>
+            <el-col :offset="2" :span="11">
+              {{ $t("message.tokenBalance") }}
+            </el-col>
+            <el-col :offset="2" :span="2">
+              {{ $t("message.decimals") }}
+            </el-col>
+          </el-row>
+          <el-divider></el-divider>
+          <el-row type="flex">
+            <el-col :span="5">
+
               <el-select
                 v-model="selectedToken"
                 filterable
@@ -24,13 +34,9 @@
                 >
                 </el-option>
               </el-select>
+
             </el-col>
-          </el-row>
-
-
-          <el-row type="flex">
-            <el-col :span="7">{{ $t("message.tokenBalance") }}</el-col>
-            <el-col :span="10">
+            <el-col :offset="2" :span="10">
               <div class="full-width">
                 {{ queryingBalance }}
               </div>
@@ -41,12 +47,15 @@
                 class="item"
                 effect="dark"
                 :content="isNativeToken?cfxBalance:tokenBalance"
-                placement="right"
+                placement="bottom-end"
               >
                 <div class="right-align bold-font">
                   <label class="main-background"> ... </label>
                 </div>
               </el-tooltip>
+            </el-col>
+            <el-col :offset="2" :span="2">
+              {{ decimals }}
             </el-col>
           </el-row>
         </el-card>
@@ -104,7 +113,7 @@
 
 <script>
 import { config, routingContractConfig } from "../contracts/contracts-config";
-import { hexStringToArrayBuffer, preciseSum } from "../utils/utils.js";
+import { hexStringToArrayBuffer, preciseSum, moveDecimal } from "../utils/utils.js";
 import TxState from "../enums/tx-state";
 import ErrorType from "../enums/error-type";
 import Web3 from "web3";
@@ -124,6 +133,7 @@ export default {
       // csv = {tos, vals} 为csv中提供的原始数据 其中vals单位为CFX
       csv: null,
       selectedToken: "",
+      decimals: '18',
 
       contract: null,
       tokenBalance: null,
@@ -183,7 +193,7 @@ export default {
       if (this.isNativeToken) {
         return this.cfxBalance === null
           ? this.$t("message.warning.connectionWarning")
-          : this.sdk.Drip(this.cfxBalance).toCFX();
+          : this.fromDripToCfxWithDecimals(this.cfxBalance);
       }
 
       if (!this.account) {
@@ -197,12 +207,11 @@ export default {
       // tokenBalance is updated using async function
       // check tokenBalance before presenting value
       return this.tokenBalance
-        ? this.sdk.Drip(this.tokenBalance).toCFX()
+        ? this.fromDripToCfxWithDecimals(this.tokenBalance)
         : this.$t("message.onRequest");
     },
     routingContract() {
       if (!this.confluxJS) return null
-
       return this.confluxJS.Contract(routingContractConfig[parseInt(this.networkVersion)]);
     },
     stateType() {
@@ -312,6 +321,22 @@ export default {
     showTxState() {
       this.txStateDialogVisible = true
     },
+    async updateDecimals() {
+      try {
+        if (!this.contract) {
+          return;
+        }
+
+        this.decimals = this.$t('message.onRequest');
+        const decimals = (
+          await this.contract.decimals()
+        ).toString();
+        this.decimals = decimals;
+      } catch (e) {
+        e._type = ErrorType.BalanceError;
+        throw e;
+      }
+    },
     // TODO: error handling (network mismatch etc)
     async updateTokenBalance() {
       // console.log(this.account)
@@ -338,6 +363,7 @@ export default {
       if(this.selectedToken === "CFX") {
         this.isNativeToken = true
         this.contract = null
+        this.decimals = 18
         return
       }
       this.isNativeToken = false
@@ -346,13 +372,24 @@ export default {
         this.contract = this.confluxJS.Contract(
           this.config[this.selectedToken]
         );
+        this.tokenBalance = null;
+        await this.updateDecimals();
         await this.updateTokenBalance();
       } catch (e) {
         this.processError(e);
       }
     },
-    fromCfxToDrip(cfx) {
-      return this.sdk.Drip.fromCFX(cfx);
+    fromDripToCfxWithDecimals(drip) {
+      // e.g. decimals = 17, deltaDecimal = 1
+      // then 1e18 token drip will be viewd as 1*10^1 token
+      const deltaDecimal = 18 - this.decimals;
+      return moveDecimal(this.sdk.Drip(drip).toCFX().toString(), deltaDecimal);
+    },
+    fromCfxToDripWithDecimals(cfx) {
+      // e.g. decimals = 17, deltaDecimal = 1
+      // then 1 token is actually 1e17 drip, 
+      const deltaDecimal = 18 - this.decimals;
+      return this.sdk.Drip.fromCFX(moveDecimal(cfx, -deltaDecimal)).toString();
     },
     async transfer() {
       this.resetLatestTransactionInfo();
@@ -367,14 +404,14 @@ export default {
           [
             this.csv.tos.map((addr) => this.sdk.format.hexAddress(addr)),
             this.csv.vals.map((element) =>
-              this.fromCfxToDrip(element).toString()
+              this.fromCfxToDripWithDecimals(element).toString()
             ),
           ]
         );
 
         // 高精度 e.g.
         // 1.3+1.5+2.9+22.9 = 28.599999999999998
-        const sum = this.fromCfxToDrip(preciseSum(this.csv.vals));
+        const sum = this.fromCfxToDripWithDecimals(preciseSum(this.csv.vals));
 
         let pendingTx;
         this.latestTransactionInfo.csv = this.csv;
@@ -383,7 +420,6 @@ export default {
         if (!this.isNativeToken) {
           const tx = this.contract.send(
             this.routingContract.address,
-            // this.fromCfxToDrip(this.csv.vals.reduce((a, b) => a + b, 0)),
             sum.toString(),
             hexStringToArrayBuffer(data)
           );
@@ -404,7 +440,6 @@ export default {
           this.latestTransactionInfo.tokenAddress = this.contract.address;
         } else {
           const tx = this.routingContract.distributeCfx(
-            // this.fromCfxToDrip(this.csv.vals.reduce((a, b) => a + b, 0)),
             hexStringToArrayBuffer(data)
           );
 

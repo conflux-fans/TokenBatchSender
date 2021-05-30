@@ -170,6 +170,11 @@ export default {
     locale() {
       // newVal 是对应语言的字符串 因此不用
       localStorage.locale = this.$i18n.locale;
+    },
+    account(newVal) {
+      if (!newVal) {
+        this.accountDialogVisible = false
+      }
     }
   },
   methods: {
