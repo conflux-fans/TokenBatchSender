@@ -1,140 +1,157 @@
 # TokenBatchSender
 
+TokenBatchSender 用于 CFX 与 ERC777 token 的批量转账
+
 - [TokenBatchSender](#tokenbatchsender)
-  - [Setup](#setup)
-  - [Contracts](#contracts)
-    - [Compiled Contracts](#compiled-contracts)
-    - [Compile Contracts Manually](#compile-contracts-manually)
-    - [Deploy contracts](#deploy-contracts)
-  - [Dapp](#dapp)
-    - [Manully change Dapp config file](#manully-change-dapp-config-file)
-    - [Run Dapp](#run-dapp)
-      - [Compiles and hot-reloads for development](#compiles-and-hot-reloads-for-development)
-      - [Compiles and minifies for production](#compiles-and-minifies-for-production)
-    - [Dapp input csv file format](#dapp-input-csv-file-format)
-  - [Dapp usage](#dapp-usage)
+  - [项目主体结构](#项目主体结构)
+  - [环境配置](#环境配置)
+  - [Dapp 部分说明](#dapp-部分说明)
+    - [Dapp 配置文件说明](#dapp-配置文件说明)
+    - [vue 命令说明](#vue-命令说明)
+      - [启动前端开发环境](#启动前端开发环境)
+      - [生成前端静态文件](#生成前端静态文件)
+      - [部署静态文件](#部署静态文件)
+  - [合约部分说明](#合约部分说明)
+    - [编译合约（可选）](#编译合约可选)
+    - [批量转账合约部署与配置](#批量转账合约部署与配置)
+  - [用户使用说明](#用户使用说明)
+    - [Dapp 输入 CSV 格式要求](#dapp-输入-csv-格式要求)
+    - [Dapp 使用](#dapp-使用)
 
-TokenBatchSender is a Dapp for batch sending cfx token and erc777 token
+## 项目主体结构
 
-English | [简体中文](./README-CN.md)
+项目大体分为 `solidity` 合约与 `vue` 前端两部分。
 
-## Setup
+- `/contracts` 与 `/build/contracts` 为合约部分。本项目中的合约包括用于批量转账的批量转账合约与用于测试的代币合约。其中 `/contracts` 中为 `solidity` 合约源码，`/build/contracts` 为编译后得到的 `JSON` 文件。
+- `/frontend` 中为 `vue` 前端的源码。
 
-Run
+## 环境配置
 
-``` bash
+安装依赖
+
+```bash
 npm install
-
-cd ./frontend
-
-npm install
 ```
 
-Chrome extension `Conflux Portal` is required for Dapp
+本项目中合约已经编译完毕(于`/build/contracts`)，未修改合约前不必再次编译。  
+如果需要编译合约，需要安装 `truffle` 或 `cfxtruffle`。
+> 其余 `solidity` 编译工具理论上也可以使用，但是没有进行过测试
 
-## Contracts
-
-### Compiled Contracts
-
-Compiled contracts are provided in dist folder `/build/contracts`.
-
-### Compile Contracts Manually
-
-You need to change `node_modules/@openzeppelin/contracts/token/ERC777/ERC777.sol` line33 to
-
-``` solidity
-IERC1820Registry constant internal _ERC1820_REGISTRY = IERC1820Registry(0x88887eD889e776bCBe2f0f9932EcFaBcDfCd1820);
+```bash
+npm install -g conflux-truffle
 ```
 
-Address of ERC1820 on Conflux is different from that of Ethereum. 
+此外，本项目前端依赖于浏览器扩展 [Conflux Portal](https://portal.confluxnetwork.org/)
 
-`DMDToken.sol` and `GLDToken.sol` are ERC777 sample contracts used for testing.`GLD20.sol` is a sample ERC20 contract. 
+## Dapp 部分说明
 
-After that, run
+### Dapp 配置文件说明
 
-``` bash
-// truffle or cfxtruffle is required
-truffle compile
+批量转账合约地址与批量转账支持的代币种类通过读取前端的合约配置文件 `/frontend/src/contracts/contracts-config.js` 获取。下面简单介绍如何修改
 
-// or
-
-cfxtruffle compile
-```
-
-### Deploy contracts
-
-`./build/contracts/TransferToken.json` can be deployed to conflux network (either mainnet or testnet) directly. `TransferToken.json` takes an address array `trusted_contracts` as the constructor parameter from which array the token batch sending request will be accepted.
-
-## Dapp
-
-### Manully change Dapp config file
-
-You need to specify deployed contract address in [Deploy contracts](#deploy-contracts).
-Change `options` and `routing contracts` to custom your Dapp.
-
-``` javascript
-//frontend/src/contracts-config.js
-
-/* specify token to select in Dapp.
- contractName: primary key
- label: label displayed in Dapp frontend
- address: specify contract address
- disabled: disable option will be displayed as 'disabled' in Dapp frontend (defalut to false)
-*/ 
+```javascript
+/*
+ options 数组中为支持的代币
+ 需要新增代币时需要向 options 数组中增加新的对象
+*/
 const options = [
   {
-    contractName: "GLD",
-    label: "测试Token GLD",
-    address: "cfxtest:type.contract:ace59n3pj2ev5f1j3vdcfr39nm9kc8dgde1d83a384"
+    contractName: "GLD", // 唯一标识符，数组内元素该字段不可重复
+    label: "GLD - testnet token", // 前端页面会显示此名称
+    address: "cfxtest:ace0ea1x6st1spm1jwfces43tder2yewz2vtx8hxrt" // 要求为 CIP-37 格式的地址
   },
-  {
-    contractName: "DMD",
-    label: "测试Token DMD",
-    address: "cfxtest:type.contract:acg4kb024uwn2cr9682s5ar0yk7zx2vuja20bwrx46",
-    disabled: false
-  }
-]
+  // ....
+];
 
-// specify TransferToken.json address
-const routingContractAddress = "blabla"
+// 修改下面两个变量的值可以修改批量转账合约地址
+// 要求分别为 CIP-37 格式的测试网地址与主网地址
+const testnetRoutingContractAddress =
+  "cfxtest:xxxxx";
+const mainnetRoutingContractAddress =
+  "cfx:xxxxx";
 ```
 
-### Run Dapp
+**此外，如果重新部署了合约或在配置列表中增加了新 Token，还需要对合约进行相应的配置。参考[批量转账合约部署与配置](#批量转账合约部署与配置)**
 
-#### Compiles and hot-reloads for development
+### vue 命令说明
 
-``` bash
+前端基于 `vue-cli` 搭建，下面进行简单说明
+
+#### 启动前端开发环境
+
+开发环境下允许热重载
+
+```bash
 cd ./frontend
 npm run serve
 ```
 
-#### Compiles and minifies for production
+#### 生成前端静态文件
 
-``` bash
-cd ./frontend
+```bash
 npm run build
 ```
 
-### Dapp input csv file format
+#### 部署静态文件
 
-Dapp input csv is an n-row-2-column csv.
-An example is provided in `./frontend/src/example/example.csv`
+```
+npm run deploy
+```
+
+该命令会执行 `/frontend/deploy.sh` 脚本，将 `/frontend/dist` 文件中内容推送至远程对应的仓库与分支。如果提前部署了 github pages 类似的服务（或提前设置了远端仓库的钩子函数）可以实现部署的效果。
+
+## 合约部分说明
+
+### 编译合约（可选）
+
+使用 `cfxtruffle` 编译
+
+```bash
+cfxtruffle compile
+```
+
+### 批量转账合约部署与配置
+
+可以直接使用 `./build/contracts/TransferToken.json` 文件进行部署。`TransferToken.json` 使用地址数组`trusted_contracts`作为初始化的参数，只有从该数组中的合约地址发送的批量转账请求才会被接受。
+
+## 用户使用说明
+
+### Dapp 输入 CSV 格式要求
+
+Dapp 使用中需要用户从磁盘中选择 csv 文件才能运行。该 csv 文件需要是一个 n 行 2 列的 csv 文件 。 
+> 地址可以是0x开头的十六进制地址，也可以是 CIP-37 格式的地址。
+> 测试网中可以使用十六进制地址、主网或测试网前缀的 CIP-37 地址
+> 主网中只能使用十六进制地址与主网前缀的 CIP-37 地址
+
+> 空行会被忽略
+
+> csv 不要求第一行为标题行。如果填写标题行，格式需要为 address, amount
+
+在 `./frontend/src/example/example.csv` 中提供了一个示例。
 
 ``` csv
-// address, token to transfer
 0x1e0cc11e4dc7208e74e20ce3060fdffc88680514, 1300
 0x1ed71ee0fe63300e0f966546fc5091ba971a3581, 1500
 ```
 
-## Dapp usage
+### Dapp 使用
 
-1. connect to your wallet
-2. select token
-3. select csv [Dapp input csv file format](#dapp-input-csv-file-format)
-![](./image/2021-04-27-14-16-10.png)
+> 需要浏览器扩展 [Conflux Portal](https://portal.confluxnetwork.org/)
+>
+> 可以在右上角切换语言，目前支持中文与英文
+> 
+> 在`ConfluxPortal`中切换主网与测试网
 
-4. send token
-![](./image/2021-04-27-14-20-25.png)
+1. 连接钱包
+2. 选择转账的代币
+3. 从磁盘选择csv文件 [Dapp 输入 CSV 格式要求](#dapp-输入-csv-格式要求)
+![](./image/2021-05-30-17-07-11.png)
 
-5. wait until transaction is confirmed
-![](./image/2021-04-27-14-22-28.png)
+4. 进行代币转账
+![](./image/2021-05-30-17-08-19.png)
+
+5. 等待交易确认，此时可以查看当前交易状态。交易确认前将无法进行其他操作
+![](./image/2021-05-30-17-09-52.png)
+
+6. 交易确认后可以继续进行转账。也可以在 `历史交易` 中查看已确认的交易。如果在确认前就关闭页面或刷新页面，相应交易信息将不会列入历史交易
+![](./image/2021-05-30-17-12-27.png)

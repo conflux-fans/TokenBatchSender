@@ -2,52 +2,61 @@
   <el-card shadow="hover">
     <el-row type="flex">
       <el-upload
-        class="upload-demo"
+        class="upload-demo full-width"
         drag
         action="/hello"
         :before-upload="handlePreview"
         v-if="!fileUploaded && !isCsvError"
       >
-        <i class="el-icon-upload"></i>
+        <!-- <i class="el-icon-upload2" style="font-size: 8em"></i> -->
+        <i class="el-icon-upload" style="font-size: 8em"></i>
         <div class="el-upload__text">
-          将CSV文件拖到此处，或<em>点击上传</em>
+          {{$t('message.tooltip.csv.drag')}}<em>{{$t('message.tooltip.csv.clickToUpload')}}</em>
         </div>
-        <div class="el-upload__tip" slot="tip">只能解析csv格式文件</div>
+        <el-row slot="tip" type="flex" justify="space-between">
+          <el-col :span=6>{{$t('message.tooltip.csv.resolve')}}</el-col>
+          <el-col :span=6 >
+            <div class="right-align">
+              <el-link href="./example.csv" type="info" target="_blank"
+                >{{$t('message.tooltip.csv.checkExample')}}<i class="el-icon-notebook-1"></i
+              ></el-link>
+            </div>
+          </el-col>
+        </el-row>
         <div class="el-upload__tip" slot="tip">
-          每行为一组数据，第一列为地址，第二列为转账代币数量
-        </div>
-        <div class="el-upload__tip" slot="tip">
-          不需要添加标题行，如果添加，标题行格式只能为 address, amount 
-        </div>
-        <div class="el-upload__tip" slot="tip">
-          文件较大时请稍作等待
-        </div>
-        <div class="el-upload__tip" slot="tip">
-          查看<a href="./example.csv">示例文件</a>
+          <el-row>
+            {{$t('message.tooltip.csv.format')}}
+          </el-row>
+          <el-row>
+            {{$t('message.tooltip.csv.titleLine')}}
+          </el-row>
+          <el-row>
+            {{$t('message.tooltip.csv.big')}}
+          </el-row>
         </div>
       </el-upload>
     </el-row>
     <el-row v-if="fileUploaded && !isCsvError" type="flex" justify="left">
       <el-col :span="6">
-          <div>转账代币总数: {{amountSum}}</div>
+          <div>{{ $t('message.transferSum') }}: {{amountSum}}</div>
         </el-col>
         <el-col :span="6">
-          <div>转账条数: {{length}}</div>
+          <div>{{$t('message.transferCount')}}: {{length}}</div>
         </el-col>
     </el-row>
 
     <el-row v-if="fileUploaded && !isCsvError">
-      <el-table :data="tableData" height="283" v-loading="!isFreeState">
+      <el-table :data="tableData" height="283" v-loading="!isFreeState" stripe>
         <el-table-column
           fixed
           prop="address"
-          label="转账地址"
+          :label="$t('message.address')"
           width="400"
         ></el-table-column>
         <el-table-column
           fixed
           prop="value"
-          label="转账代币数量"
+          :label="$t('message.tokenAmount')"
           width="300"
         ></el-table-column>
       </el-table>
@@ -56,30 +65,36 @@
       <div v-html="csvErrorMessage" style="color:red"></div>
     </el-row>
     <el-row v-if="isCsvError || fileUploaded" style="text-align: left">
-      <el-button
-        type="info"
-        v-if="isCsvError || fileUploaded"
-        @click="resetCsv"
-        :disabled="!isFreeState"
-        style="display: inline-block"
-        >重置CSV文件</el-button
-      >
-      <el-button
-        type="danger"
-        v-if="fileUploaded"
-        @click="$emit('transfer')"
-        :disabled="!isFreeState || !selectedToken"
-        style="display: inline-block"
-        >批量转帐</el-button
-      >
+      <el-col :span=3>
+        <el-button
+          size="medium"
+          type="info"
+          v-if="isCsvError || fileUploaded"
+          @click="resetCsv"
+          :disabled="!isFreeState"
+          >{{$t('message.command.resetCsv')}}</el-button
+        >
+      </el-col>
+      <el-col :offset=2 :span=3>
+        <el-tooltip effect="light" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken) && Boolean(account)">
+          <div>
+            <el-button
+              size="medium"
+              type="danger"
+              v-if="fileUploaded"
+              @click="$emit('transfer')"
+              :disabled="!isFreeState || !selectedToken || !account"
+              >{{$t('message.command.send')}}</el-button
+            >
+          </div>
+        </el-tooltip>
+      </el-col>
     </el-row>
-    <!-- <el-button @click="testMethod"> test </el-button> -->
   </el-card>
 </template>
 <script>
 import ErrorType from '../enums/error-type'
 import NetworkType from '../enums/network-type'
-// import NP from 'number-precision'
 import { preciseSum } from '../utils/utils'
 import Papa from 'papaparse'
 
@@ -89,7 +104,6 @@ export default {
   props: ['csv', 'isFreeState', 'csvError', 'networkVersion', 'selectedToken'],
   data() {
     return {
-      // isLoading: false
     };
   },
   methods: {
@@ -126,9 +140,7 @@ export default {
       }
     },
     handlePreview(file) {
-      // this.isLoading = true
       this.processCSV(file);
-      // this.isLoading = false
 
       // return false, then upload action will not be triggered
       return false;
@@ -136,28 +148,22 @@ export default {
     async processCSV(file) {
       try {
         const c = await file.text();
-        // console.log(c);
         const rows = Papa.parse(c).data
         console.log(rows)
-        //c.split("\n");
+
         let tos = [];
         let vals = [];
-
         let csv_msg = []
 
         for (let i = 0; i < rows.length; ++i) {
-          // const row = rows[i];
-          
           const results = rows[i];
-          // sdk error message is confusing
-          // tos.push(this.sdk.format.hexAddress(results[0].trim()));
           if (results.length === 1 && !results[0]) {
             continue
           }
 
           try {
             if (results.length !== 2) {
-              throw new Error('列数不为2')
+              throw new Error('column count is not 2')
             }
 
             const addr = results[0].trim()
@@ -185,11 +191,7 @@ export default {
         }
 
         if(csv_msg.length !== 0) {
-          // console.log(csv_msg)
           const msg = csv_msg.join("<br>")
-          // console.log(msg)
-          // this.errorMessage = msg
-          // this.csvError = msg
           const tmp = new Error(msg)
           throw tmp
         }
@@ -208,6 +210,19 @@ export default {
     }
   },
   computed: {
+    disabledTooltip() {
+      if (!this.account) {
+        return this.$t("message.warning.connectionWarning")
+      }
+
+      if(!this.selectedToken) {
+        return this.$t("message.warning.tokenWarning")
+      }
+      return null
+    },
+    account() {
+      return this.$store.state.account
+    },
     sdk() {
       return this.$store.state.sdk
     },
@@ -232,11 +247,7 @@ export default {
       return tmp;
     },
     amountSum() {
-      // if (this.csv.vals.length === 0) {
-      //   return null
-      // }
       return preciseSum(this.csv.vals)
-      // return this.csv.vals.reduce((x,y) => NP.plus(x, y), 0)
     },
     length() {
       return this.csv.tos.length
@@ -245,4 +256,14 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.upload-demo /deep/ .el-upload-dragger {
+    width: 100%;
+}
+.upload-demo /deep/ .el-upload{
+    width: 100%;
+}
+.el-upload__tip /deep/ .el-row {
+  margin: 2px;
+}
+</style>

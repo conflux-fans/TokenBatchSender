@@ -13,12 +13,6 @@ function getScanUrl(content, type, networkId) {
   return [prefixMap[parseInt(networkId)], type, content].join('/')
 }
 
-function getScanHtml(content, type, networkId, text) {
-  // let html = `<el-link icon="el-icon-s-home" type="primary">主页</el-link>`
-  let html = `<i class='el-icon-top-right'></i>`
-  return `<a href="${getScanUrl(content, type, networkId)} " target="_blank">${text + html}</a>`
-}
-
 function hexStringToArrayBuffer(hexString) {
   // remove the leading 0x
   hexString = hexString.replace(/^0x/, "");
@@ -52,9 +46,26 @@ function preciseSum(arr) {
   return arr.reduce((x, y) => NP.plus(x, y), 0)
 }
 
+function moveDecimal(num, deltaDecimal) {
+  let rtn = num;
+
+  if (deltaDecimal >= 0) {
+    for (let i = 0; i < deltaDecimal; ++i) {
+      rtn = NP.times(rtn, 10)
+    }
+  } else {
+    for (let i = 0; i < -deltaDecimal; ++i) {
+      rtn = NP.divide(rtn, 10)
+    }
+  }
+  return rtn
+}
+
+// window.NP = NP
+
 export {
   getScanUrl,
-  getScanHtml,
   hexStringToArrayBuffer,
-  preciseSum
+  preciseSum,
+  moveDecimal,
 };

@@ -6,7 +6,6 @@ import { default as routing } from "../../../build/contracts/TransferToken.json"
  contractName: primary key
  label: label displayed in Dapp frontend
  address: specify contract address
- disabled: disable option will be displayed as 'disabled' in Dapp frontend (defalut to false)
 */
 
 const options = [
@@ -26,7 +25,7 @@ const options = [
     contractName: "FC-testnet",
   },
   {
-    address: "cfxtest:acdvm6k5jw211brxu944dwtcjzk1vr9zfydm8dnajx",
+    address: "cfxtest:acab179g4xj369s16ufuaaku2bh6n52wwju2845cda",
     label: "conflux USDT",
     contractName: "cUSDT-testnet",
   },
@@ -36,16 +35,10 @@ const options = [
     address: "cfxtest:ace0ea1x6st1spm1jwfces43tder2yewz2vtx8hxrt",
   },
   {
-    contractName: "DMD",
-    label: "测试Token DMD",
-    address: "cfxtest:type.contract:acg4kb024uwn2cr9682s5ar0yk7zx2vuja20bwrx46",
+    contractName: "D6",
+    label: "测试Token Decimal6", // ERC777 的非法实现
+    address: "cfxtest:aca6v0d4k90ys8ymfuk1ay0hubs0h7yhdje2ht916e",
   },
-  {
-    contractName: "BIGGLD",
-    label: "测试Token BIG GLD",
-    address: "cfxtest:type.contract:acd29kfdf8wyz41dczw1sj9jua9523047681m9rjfs",
-  },
-
   // {
   //   address: 'cfx:achcuvuasx3t8zcumtwuf35y51sksewvca0h0hj71a',
   //   label: 'conflux MOON',
@@ -185,6 +178,8 @@ const options = [
 ];
 
 // specify TransferToken.json address
+// 修改下面两个变量的值可以修改批量转账合约地址
+// 要求分别为 CIP-37 格式的测试网地址与主网地址
 const testnetRoutingContractAddress =
   "cfxtest:acfx9x18b7f6fa5at8eg7j6f3b2bdax112fhspm4h8";
 const mainnetRoutingContractAddress =
