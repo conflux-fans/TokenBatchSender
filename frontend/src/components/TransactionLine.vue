@@ -49,7 +49,7 @@
 import { getScanUrl, preciseSum } from '../utils'
 
 export default {
-  name: "HistoryTransactionLine",
+  name: "TransactionLine",
   props: ["transactionInfo"],
   data() {
     return {

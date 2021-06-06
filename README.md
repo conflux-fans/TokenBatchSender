@@ -31,6 +31,10 @@ TokenBatchSender 用于 CFX 与 ERC777 token 的批量转账
 
 ```bash
 npm install
+
+cd ./frontend
+
+npm install
 ```
 
 本项目中合约已经编译完毕(于`/build/contracts`)，未修改合约前不必再次编译。  
@@ -47,9 +51,22 @@ npm install -g conflux-truffle
 
 ### Dapp 配置文件说明
 
-批量转账合约地址与批量转账支持的代币种类通过读取前端的合约配置文件 `/frontend/src/contracts/contracts-config.js` 获取。下面简单介绍如何修改
+批量转账合约地址与批量转账支持的代币种类通过读取前端的合约配置文件 `/frontend/src/contracts-config/routingContractConfig.js` 与 `/frontend/src/contracts-config/tokenConfig.js` 获取。下面简单介绍如何修改
 
 ```javascript
+// routingContractConfig.js
+
+// 修改下面两个变量的值可以修改批量转账合约地址
+// 要求分别为 CIP-37 格式的测试网地址与主网地址
+const testnetRoutingContractAddress =
+  "cfxtest:xxxxx";
+const mainnetRoutingContractAddress =
+  "cfx:xxxxx";
+```
+
+```javascript
+// tokenConfig.js
+
 /*
  options 数组中为支持的代币
  需要新增代币时需要向 options 数组中增加新的对象
@@ -62,14 +79,8 @@ const options = [
   },
   // ....
 ];
-
-// 修改下面两个变量的值可以修改批量转账合约地址
-// 要求分别为 CIP-37 格式的测试网地址与主网地址
-const testnetRoutingContractAddress =
-  "cfxtest:xxxxx";
-const mainnetRoutingContractAddress =
-  "cfx:xxxxx";
 ```
+
 
 **此外，如果重新部署了合约或在配置列表中增加了新 Token，还需要对合约进行相应的配置。参考[批量转账合约部署与配置](#批量转账合约部署与配置)**
 

@@ -9,15 +9,15 @@
       </el-col>
     </el-row>
     <el-collapse>
-      <history-transaction-line v-bind:transactionInfo="latestTransactionInfo"></history-transaction-line>
+      <transaction-line v-bind:transactionInfo="latestTransactionInfo"></transaction-line>
     </el-collapse>
   </el-card>
 </template>
 <script>
-import HistoryTransactionLine from './HistoryTransactionLine.vue';
+import TransactionLine from './TransactionLine.vue';
 
 export default {
-  components: { HistoryTransactionLine },
+  components: { TransactionLine },
   name: 'CurrentTransactionPanel',
   props: ['latestTransactionInfo', 'tagTheme', "stateType", "txState"],
   data() {

@@ -148,7 +148,6 @@ export default {
       try {
         const c = await file.text();
         const rows = Papa.parse(c).data
-        console.log(rows)
 
         let tos = [];
         let vals = [];

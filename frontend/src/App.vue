@@ -81,7 +81,6 @@ export default {
   name: "App",
   data() {
     return {
-      // DEBUG: process.env.NODE_ENV !== 'production'
       accountDialogVisible: false,
       installationDialogVisible: false,
     };
