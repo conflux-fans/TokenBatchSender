@@ -24,7 +24,7 @@ const options = [
     contractName: "FC-testnet",
   },
   {
-    address: "cfxtest:acab179g4xj369s16ufuaaku2bh6n52wwju2845cda",
+    address: "cfxtest:acepe88unk7fvs18436178up33hb4zkuf62a9dk1gv",
     label: "conflux USDT",
     contractName: "cUSDT-testnet",
   },
