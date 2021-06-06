@@ -46,7 +46,7 @@
   </el-collapse-item>
 </template>
 <script>
-import { getScanUrl, preciseSum } from '../utils/utils.js'
+import { getScanUrl, preciseSum } from '../utils'
 
 export default {
   name: "HistoryTransactionLine",
@@ -78,7 +78,7 @@ export default {
       return this.transactionInfo.from
     },
     isNativeToken() {
-      return this.transactionInfo.isNativeToken
+      return this.transactionInfo.selectedToken === 'CFX'
     },
     tableData() {
       if (this.csv == null) return null

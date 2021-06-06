@@ -25,7 +25,7 @@
           <el-col :span="2">
             <el-dropdown @command="handleLangCommand" class="full-width">
               <div class="el-dropdown-link full-width bold-font right-align" style="color: white;">
-                {{ locale }}<i class="el-icon-arrow-down el-icon--right"></i>
+                {{ localeText }}<i class="el-icon-arrow-down el-icon--right"></i>
               </div>
               <el-dropdown-menu slot="dropdown">
                 <el-dropdown-item command="zh-CN">中文</el-dropdown-item>
@@ -39,7 +39,7 @@
       <el-dialog
         :visible.sync="accountDialogVisible"
         :title="$t('message.currentAccountAddress')"
-        width="40%"
+        width="45%"
         :show-close="false"
       >
         <el-row>
@@ -55,10 +55,10 @@
         :visible.sync="installationDialogVisible"
         :title="$t('message.error.installationError')"
         :close-on-click-modal="false"
-        width="40%"
+        width="45%"
         :show-close="false"
       >
-        <el-row>
+        <el-row class="no-break">
           {{$t('message.tooltip.portal.beg')}}<el-link href="https://portal.confluxnetwork.org/" type="primary" target="_blank">ConfluxPortal<i class="el-icon-top-right el-icon--right"></i></el-link>{{$t('message.tooltip.portal.end')}}
         </el-row>
       </el-dialog>
@@ -71,7 +71,7 @@
 </template>
 
 <script>
-import { getScanUrl } from './utils/utils.js'
+import { getScanUrl } from './utils'
 import BatchSender from './components/BatchSender.vue';
 
 export default {
@@ -82,17 +82,6 @@ export default {
   data() {
     return {
       // DEBUG: process.env.NODE_ENV !== 'production'
-      lang: this.$i18n.locale,
-      langList: [
-        {
-          value: "zh-CN",
-          label: "中文"
-        },
-        {
-          value: "en",
-          label: "en"
-        }
-      ],
       accountDialogVisible: false,
       installationDialogVisible: false,
     };
@@ -137,14 +126,14 @@ export default {
     accountConnected() {
       return this.$store.state.account !== null;
     },
-    locale() {
+    localeText() {
       switch (this.$i18n.locale) {
         case "zh-CN":
           return "中文";
         default:
           return this.$i18n.locale;
       }
-    }
+    },
   },
   mounted() {
     // executed immediately after page is fully loaded
@@ -167,10 +156,6 @@ export default {
     networkVersion() {
       this.selectedToken = ""
     },
-    locale() {
-      // newVal 是对应语言的字符串 因此不用
-      localStorage.locale = this.$i18n.locale;
-    },
     account(newVal) {
       if (!newVal) {
         this.accountDialogVisible = false
@@ -178,8 +163,10 @@ export default {
     }
   },
   methods: {
+    // 选择语言选项时触发的函数
     handleLangCommand(locale) {
       this.$i18n.locale = locale;
+      localStorage.locale = locale;
     },
     async authorize() {
       try {
@@ -245,5 +232,9 @@ body,
 
 .el-card {
   margin: 10px;
+}
+
+.no-break {
+  word-break: normal;
 }
 </style>

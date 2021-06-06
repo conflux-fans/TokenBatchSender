@@ -101,10 +101,10 @@
     <el-dialog
         :visible.sync="txStateDialogVisible"
         :title="$t('message.currentTransactionStatus')"
-        width="40%"
+        width="45%"
         :show-close="false"
       >
-        <el-row>
+        <el-row class="no-break">
           {{ stateMessage }}
         </el-row>
       </el-dialog>
@@ -112,10 +112,9 @@
 </template>
 
 <script>
-import { config, routingContractConfig } from "../contracts/contracts-config";
-import { hexStringToArrayBuffer, preciseSum, moveDecimal } from "../utils/utils.js";
-import TxState from "../enums/tx-state";
-import ErrorType from "../enums/error-type";
+import { tokenConfig, routingContractConfig } from "../contracts-config";
+import { hexStringToArrayBuffer, preciseSum, moveDecimal } from "../utils";
+import { TxState, ErrorType } from "../enums";
 import Web3 from "web3";
 import CsvPanel from "./CsvPanel.vue";
 import HistoryTransactionPanel from "./HistoryTransactionPanel.vue";
@@ -138,7 +137,6 @@ export default {
       contract: null,
       tokenBalance: null,
 
-      isNativeToken: false,
 
       txState: TxState.NoTask,
       transactionList: [],
@@ -150,7 +148,6 @@ export default {
         networkVersion: null,
         confirmDate: null,
         from: null,
-        isNativeToken: null
       },
 
       errors: {
@@ -160,7 +157,7 @@ export default {
       },
       tagTheme: "dark",
 
-      config: null,
+      tokenConfig: null,
       routingContractConfig: null,
       txStateDialogVisible: false,
 
@@ -188,6 +185,9 @@ export default {
     },
     networkVersion() {
       return this.conflux?.networkVersion;
+    },
+    isNativeToken() {
+      return this.selectedToken === "CFX"
     },
     queryingBalance() {
       if (this.isNativeToken) {
@@ -257,15 +257,15 @@ export default {
         label: "CFX",
         value: "CFX"
       }];
-      if (!config) {
+      if (!tokenConfig) {
         return tmp
       }
-      Object.keys(config).forEach((option) => {
+      Object.keys(tokenConfig).forEach((option) => {
         // not strict equal
-        if(this.$store.state.sdk?.address?.decodeCfxAddress(config[option].address)?.netId == this.$store.state.conflux?.networkVersion) {
+        if(this.$store.state.sdk?.address?.decodeCfxAddress(tokenConfig[option].address)?.netId == this.$store.state.conflux?.networkVersion) {
           tmp.push({
             value: option,
-            label: config[option].label,
+            label: tokenConfig[option].label,
           });
         }
       });
@@ -292,8 +292,6 @@ export default {
 
     // executed immediately after page is fully loaded
     this.$nextTick(function () {
-      this.config = config;
-      this.routingContractConfig = routingContractConfig
       this.web3 = new Web3();
     });
   },
@@ -357,16 +355,14 @@ export default {
       console.log("Selected token changed to %s", this.selectedToken);
 
       if(this.selectedToken === "CFX") {
-        this.isNativeToken = true
         this.contract = null
         this.decimals = 18
         return
       }
-      this.isNativeToken = false
 
       try {
         this.contract = this.confluxJS.Contract(
-          this.config[this.selectedToken]
+          tokenConfig[this.selectedToken]
         );
         this.tokenBalance = null;
         await this.updateDecimals();
@@ -395,7 +391,6 @@ export default {
         // 重新获取授权
         await this.authorize();
         this.latestTransactionInfo.from = this.account
-        this.latestTransactionInfo.isNativeToken = this.isNativeToken
 
         const data = this.web3.eth.abi.encodeParameters(
           ["address[]", "uint256[]"],
@@ -535,7 +530,6 @@ export default {
         networkVersion: null,
         confirmDate: null,
         from: null,
-        isNativeToken: null
       };
     },
   },

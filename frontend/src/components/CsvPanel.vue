@@ -93,9 +93,8 @@
   </el-card>
 </template>
 <script>
-import ErrorType from '../enums/error-type'
-import NetworkType from '../enums/network-type'
-import { preciseSum } from '../utils/utils'
+import { ErrorType, NetworkType } from '../enums'
+import { preciseSum } from '../utils'
 import Papa from 'papaparse'
 
 
