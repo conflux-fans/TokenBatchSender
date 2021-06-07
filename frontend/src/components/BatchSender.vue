@@ -265,10 +265,10 @@ export default {
     transactionList(newVal) {
       localStorage.transactionList = JSON.stringify(newVal);
     },
-    account(newVal) {
+    async account(newVal) {
       if(newVal) {
         // 异步操作
-        this.updateTokenBalance()
+        await this.updateTokenBalance()
       } else {
         this.resetBalance()
       }
@@ -287,8 +287,10 @@ export default {
           tokenConfig[newVal]
         );
         this.tokenBalance = null;
-        await this.updateDecimals();
-        await this.updateTokenBalance();
+        await Promise.all([
+          this.updateDecimals(),
+          this.updateTokenBalance()
+        ])
       } catch (e) {
         this.processError(e);
       }
@@ -320,6 +322,7 @@ export default {
     },
     async authorize() {
       try {
+        // 下面两个步骤有先后关系 不能使用Promise.all
         await this.$store.dispatch("authorize");
         await this.updateTokenBalance();
       } catch (e) {
@@ -450,8 +453,12 @@ export default {
         this.latestTransactionInfo.hash = receipt.transactionHash;
         this.txState = TxState.Executed;
 
-        await this.$store.dispatch("updateCfxBalance");
-        await this.updateTokenBalance();
+        await Promise.all([
+          this.$store.dispatch("updateCfxBalance"),
+          this.updateTokenBalance()
+        ])
+        // await this.$store.dispatch("updateCfxBalance");
+        // await this.updateTokenBalance();
 
         this.notifyTxState();
         receipt = await pendingTx.confirmed();
