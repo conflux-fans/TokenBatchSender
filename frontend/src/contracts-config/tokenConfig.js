@@ -1,5 +1,4 @@
-// import ERC777 Token .json files
-import { default as ERC777 } from "../../../build/contracts/ERC777.json";
+import { abi } from "../../../build/contracts/ERC777.json";
 
 /* specify token to select in Dapp.
  contractName: primary key
@@ -179,8 +178,8 @@ const options = [
 let tokenConfig = {};
 options.forEach((option) => {
   tokenConfig[option.contractName] = {
-    abi: ERC777.abi,
-    bytecode: ERC777.bytecode,
+    abi,
+    // bytecode: ERC777.bytecode,
     address: option.address,
     label: option.label,
     disabled: option.disabled,
