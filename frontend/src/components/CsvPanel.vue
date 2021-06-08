@@ -93,9 +93,8 @@
   </el-card>
 </template>
 <script>
-import ErrorType from '../enums/error-type'
-import NetworkType from '../enums/network-type'
-import { preciseSum } from '../utils/utils'
+import { ErrorType, NetworkType } from '../enums'
+import { preciseSum } from '../utils'
 import Papa from 'papaparse'
 
 
@@ -149,7 +148,6 @@ export default {
       try {
         const c = await file.text();
         const rows = Papa.parse(c).data
-        console.log(rows)
 
         let tos = [];
         let vals = [];

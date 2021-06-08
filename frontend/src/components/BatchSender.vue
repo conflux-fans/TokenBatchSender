@@ -20,7 +20,6 @@
                 v-model="selectedToken"
                 filterable
                 :placeholder="$t('message.selectText')"
-                @change="changeToken"
                 size="mini"
                 class="full-width"
                 :disabled="!isFreeState"
@@ -79,7 +78,6 @@
       </el-col>
     </el-row>
     <el-row type="flex" justify="center" v-if="!isFreeState">
-    <!-- <el-row type="flex" justify="center" v-if="hasTask"> -->
       <el-col :span="20">
         <current-transaction-panel
           v-bind:latestTransactionInfo="latestTransactionInfo"
@@ -101,10 +99,10 @@
     <el-dialog
         :visible.sync="txStateDialogVisible"
         :title="$t('message.currentTransactionStatus')"
-        width="40%"
+        width="45%"
         :show-close="false"
       >
-        <el-row>
+        <el-row class="no-break">
           {{ stateMessage }}
         </el-row>
       </el-dialog>
@@ -112,10 +110,9 @@
 </template>
 
 <script>
-import { config, routingContractConfig } from "../contracts/contracts-config";
-import { hexStringToArrayBuffer, preciseSum, moveDecimal } from "../utils/utils.js";
-import TxState from "../enums/tx-state";
-import ErrorType from "../enums/error-type";
+import { tokenConfig, routingContractConfig } from "../contracts-config";
+import { hexStringToArrayBuffer, preciseSum, moveDecimal } from "../utils";
+import { TxState, ErrorType } from "../enums";
 import Web3 from "web3";
 import CsvPanel from "./CsvPanel.vue";
 import HistoryTransactionPanel from "./HistoryTransactionPanel.vue";
@@ -138,7 +135,6 @@ export default {
       contract: null,
       tokenBalance: null,
 
-      isNativeToken: false,
 
       txState: TxState.NoTask,
       transactionList: [],
@@ -150,7 +146,6 @@ export default {
         networkVersion: null,
         confirmDate: null,
         from: null,
-        isNativeToken: null
       },
 
       errors: {
@@ -160,11 +155,7 @@ export default {
       },
       tagTheme: "dark",
 
-      config: null,
-      routingContractConfig: null,
       txStateDialogVisible: false,
-
-      DEBUG: process.env.NODE_ENV !== "production",
     };
   },
   computed: {
@@ -188,6 +179,9 @@ export default {
     },
     networkVersion() {
       return this.conflux?.networkVersion;
+    },
+    isNativeToken() {
+      return this.selectedToken === "CFX"
     },
     queryingBalance() {
       if (this.isNativeToken) {
@@ -244,11 +238,6 @@ export default {
     isFreeState() {
       return TxState.isFree(this.txState);
     },
-
-    hasTask() {
-      return this.txState !== TxState.NoTask;
-    },
-
     accountConnected() {
       return this.$store.state.account !== null;
     },
@@ -257,15 +246,15 @@ export default {
         label: "CFX",
         value: "CFX"
       }];
-      if (!config) {
+      if (!tokenConfig) {
         return tmp
       }
-      Object.keys(config).forEach((option) => {
+      Object.keys(tokenConfig).forEach((option) => {
         // not strict equal
-        if(this.$store.state.sdk?.address?.decodeCfxAddress(config[option].address)?.netId == this.$store.state.conflux?.networkVersion) {
+        if(this.$store.state.sdk?.address?.decodeCfxAddress(tokenConfig[option].address)?.netId == this.$store.state.conflux?.networkVersion) {
           tmp.push({
             value: option,
-            label: config[option].label,
+            label: tokenConfig[option].label,
           });
         }
       });
@@ -283,21 +272,44 @@ export default {
       } else {
         this.resetBalance()
       }
+    },
+    async selectedToken(newVal) {
+      console.log("Selected token changed to %s", newVal);
+
+      if(newVal === "CFX") {
+        this.contract = null
+        this.decimals = 18
+        return
+      }
+
+      try {
+        this.contract = this.confluxJS.Contract(
+          tokenConfig[newVal]
+        );
+        this.tokenBalance = null;
+        await this.updateDecimals();
+        await this.updateTokenBalance();
+      } catch (e) {
+        this.processError(e);
+      }
     }
   },
   mounted() {
-    if (localStorage.transactionList) {
-      this.transactionList = JSON.parse(localStorage.transactionList);
-    }
+    this.fetchTransactionList()
 
     // executed immediately after page is fully loaded
     this.$nextTick(function () {
-      this.config = config;
-      this.routingContractConfig = routingContractConfig
       this.web3 = new Web3();
     });
   },
   methods: {
+    fetchTransactionList() {
+      if(localStorage.transactionList) {
+        this.transactionList = JSON.parse(localStorage.transactionList);
+      } else {
+        this.transactionList = []
+      }
+    },
     notifyTxState() {
       this.$notify({
         title: this.txState,
@@ -335,7 +347,6 @@ export default {
       }
     },
     async updateTokenBalance() {
-      // console.log(this.account)
       try {
         if (!this.account || !this.contract) {
           return;
@@ -345,42 +356,15 @@ export default {
           await this.contract.balanceOf(this.account)
         ).toString();
         this.tokenBalance = tokenBalance;
-        console.log("Account tokenBalance: ");
-
-        console.log(tokenBalance);
       } catch (e) {
         e._type = ErrorType.BalanceError;
         throw e;
-      }
-    },
-    async changeToken() {
-      console.log("Selected token changed to %s", this.selectedToken);
-
-      if(this.selectedToken === "CFX") {
-        this.isNativeToken = true
-        this.contract = null
-        this.decimals = 18
-        return
-      }
-      this.isNativeToken = false
-
-      try {
-        this.contract = this.confluxJS.Contract(
-          this.config[this.selectedToken]
-        );
-        this.tokenBalance = null;
-        await this.updateDecimals();
-        await this.updateTokenBalance();
-      } catch (e) {
-        this.processError(e);
       }
     },
     fromDripToCfxWithDecimals(drip) {
       // e.g. decimals = 6, deltaDecimal = 12
       // then 1e18 token drip will be viewd as 1*10^1 token
       const deltaDecimal = 18 - this.decimals;
-      console.log(deltaDecimal);
-      console.log(this.sdk.Drip(drip).toCFX().toString());
       return moveDecimal(this.sdk.Drip(drip).toCFX().toString(), deltaDecimal);
     },
     fromCfxToDripWithDecimals(cfx) {
@@ -395,7 +379,6 @@ export default {
         // 重新获取授权
         await this.authorize();
         this.latestTransactionInfo.from = this.account
-        this.latestTransactionInfo.isNativeToken = this.isNativeToken
 
         const data = this.web3.eth.abi.encodeParameters(
           ["address[]", "uint256[]"],
@@ -426,7 +409,6 @@ export default {
           const estimate = await tx.estimateGasAndCollateral({
             from: this.account,
           });
-          console.log(estimate);
 
           pendingTx = tx.sendTransaction({
             from: this.account,
@@ -446,7 +428,6 @@ export default {
             from: this.account,
             value: sum.toString(),
           });
-          // console.log(estimate);
 
           pendingTx = tx.sendTransaction({
             from: this.account,
@@ -476,6 +457,9 @@ export default {
         receipt = await pendingTx.confirmed();
         this.latestTransactionInfo.confirmDate = Date.now();
 
+        // 不排除用户会同时开多个窗口的可能，因此需要在更新前拉取一下
+        // 这样可以最大程度避免多开窗口造成的历史交易记录丢失
+        this.fetchTransactionList()
         // deep copy
         this.transactionList.push(
           JSON.parse(JSON.stringify(this.latestTransactionInfo))
@@ -535,7 +519,6 @@ export default {
         networkVersion: null,
         confirmDate: null,
         from: null,
-        isNativeToken: null
       };
     },
   },
@@ -543,33 +526,4 @@ export default {
 </script>
 
 <style scoped>
-
-.full-height {
-  height: 100%;
-  /* align: middle; */
-}
-
-.full-width {
-  width: 100%;
-}
-
-.right-align {
-  text-align: right;
-}
-
-.center-align {
-  text-align: center;
-}
-
-.bold-font {
-  font-weight: bold;
-}
-
-.white-font {
-  color: white;
-}
-
-.el-card {
-  margin: 10px;
-}
 </style>

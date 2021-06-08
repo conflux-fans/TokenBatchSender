@@ -20,15 +20,15 @@
     </div>
     <el-collapse v-for="transactionInfo in reversedTransactionList"
         v-bind:key="transactionInfo.confirmDate">
-        <history-transaction-line v-bind:transactionInfo="transactionInfo"></history-transaction-line>
+        <transaction-line v-bind:transactionInfo="transactionInfo"></transaction-line>
     </el-collapse>
   </el-card>
 </template>
 <script>
-import HistoryTransactionLine from './HistoryTransactionLine.vue';
+import TransactionLine from './TransactionLine.vue';
 
 export default {
-  components: { HistoryTransactionLine },
+  components: { TransactionLine },
   name: 'HistoryTransactionPanel',
   props: ['transactionList'],
   data() {
