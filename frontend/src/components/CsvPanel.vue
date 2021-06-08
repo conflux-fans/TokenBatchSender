@@ -100,7 +100,7 @@ import Papa from 'papaparse'
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'networkVersion', 'selectedToken'],
+  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken'],
   data() {
     return {
     };
@@ -141,14 +141,14 @@ export default {
               }
             }
 
-            if (!NetworkType.isValidAddress(addr, this.networkVersion, this.sdk)) {
+            if (!NetworkType.isValidAddress(addr, this.chainId, this.sdk)) {
               throw new Error('address is not valid')
             }
             if (isNaN(val)) {
               throw new Error('value is not valid')
             }
 
-            tos.push(this.sdk.format.address(addr, parseInt(this.networkVersion)));
+            tos.push(this.sdk.format.address(addr, parseInt(this.chainId)));
             vals.push(parseFloat(val));
             
           } catch (e) {
