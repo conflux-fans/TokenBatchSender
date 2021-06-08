@@ -152,6 +152,8 @@ export default {
     });
   },
   watch: {
+    // 一般而言 网络环境变化时页面会进行自动刷新
+    // 以防万一 这里在网络环境变化时重置当前选择的 Token
     networkVersion() {
       this.selectedToken = ""
     },
