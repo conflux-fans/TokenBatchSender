@@ -87,7 +87,7 @@ export default {
   },
   computed: {
     scanAccountUrl() {
-      return getScanUrl(this.account, 'address', this.networkVersion)
+      return getScanUrl(this.account, 'address', this.chainId)
     },
     account() {
       return this.$store.state.account
@@ -105,19 +105,19 @@ export default {
       return this.$store.state.cfxBalance
     },
     networkText() {
-      switch (this.conflux?.networkVersion) {
-        case '1029':
-          return 'Conflux Tethys';
-        case '1':
-          return 'Conflux Testnet';
+      switch (this.conflux?.chainId) {
+        case '0x405':
+          return "Conflux Tethys";
+        case '0x1':
+          return "Conflux Testnet";
         case undefined:
-          return 'Portal Not Detected';
+          return "Portal Not Detected";
       }
 
-      return 'networkId: '+ this.conflux?.networkVersion;
+      return "networkId: " + this.conflux?.chainId;
     },
-    networkVersion() {
-      return this.conflux?.networkVersion;
+    chainId() {
+      return this.conflux?.chainId;
     },
     simplifiedAccount() {
       return this.$store.getters.simplifiedAccount
@@ -152,7 +152,9 @@ export default {
     });
   },
   watch: {
-    networkVersion() {
+    // 一般而言 网络环境变化时页面会进行自动刷新
+    // 以防万一 这里在网络环境变化时重置当前选择的 Token
+    chainId() {
       this.selectedToken = ""
     },
     account(newVal) {

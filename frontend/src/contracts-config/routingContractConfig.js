@@ -1,4 +1,4 @@
-import { default as routing } from "../../../build/contracts/TransferToken.json";
+import { abi } from "../../../build/contracts/TransferToken.json";
 
 // specify TransferToken.json address
 // 修改下面两个变量的值可以修改批量转账合约地址
@@ -10,13 +10,13 @@ const mainnetRoutingContractAddress =
 
 const routingContractConfig = {
   1: {
-    abi: routing.abi,
-    bytecode: routing.bytecode,
+    abi,
+    // bytecode: routing.bytecode,
     address: testnetRoutingContractAddress,
   },
   1029: {
-    abi: routing.abi,
-    bytecode: routing.bytecode,
+    abi,
+    // bytecode: routing.bytecode,
     address: mainnetRoutingContractAddress,
   },
 };

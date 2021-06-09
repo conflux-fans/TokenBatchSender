@@ -66,7 +66,7 @@
         <csv-panel
           v-bind:csv="csv"
           v-bind:isFreeState="isFreeState"
-          v-bind:networkVersion="networkVersion"
+          v-bind:chainId="chainId"
           v-bind:csvError="errors['csvError']"
           v-bind:selectedToken="selectedToken"
           v-on:process-error="processError"
@@ -143,7 +143,7 @@ export default {
         csv: null,
         selectedToken: null,
         tokenAddress: null,
-        networkVersion: null,
+        chainId: null,
         confirmDate: null,
         from: null,
       },
@@ -177,8 +177,8 @@ export default {
     csvErrorMessage() {
       return this.errors["csvError"]?.message;
     },
-    networkVersion() {
-      return this.conflux?.networkVersion;
+    chainId() {
+      return this.conflux?.chainId;
     },
     isNativeToken() {
       return this.selectedToken === "CFX"
@@ -206,7 +206,7 @@ export default {
     },
     routingContract() {
       if (!this.confluxJS) return null
-      return this.confluxJS.Contract(routingContractConfig[parseInt(this.networkVersion)]);
+      return this.confluxJS.Contract(routingContractConfig[parseInt(this.chainId)]);
     },
     stateType() {
       switch (this.txState) {
@@ -251,7 +251,7 @@ export default {
       }
       Object.keys(tokenConfig).forEach((option) => {
         // not strict equal
-        if(this.$store.state.sdk?.address?.decodeCfxAddress(tokenConfig[option].address)?.netId == this.$store.state.conflux?.networkVersion) {
+        if(this.$store.state.sdk?.address?.decodeCfxAddress(tokenConfig[option].address)?.netId == this.$store.state.conflux?.chainId) {
           tmp.push({
             value: option,
             label: tokenConfig[option].label,
@@ -265,10 +265,10 @@ export default {
     transactionList(newVal) {
       localStorage.transactionList = JSON.stringify(newVal);
     },
-    account(newVal) {
+    async account(newVal) {
       if(newVal) {
         // 异步操作
-        this.updateTokenBalance()
+        await this.updateTokenBalance()
       } else {
         this.resetBalance()
       }
@@ -287,8 +287,10 @@ export default {
           tokenConfig[newVal]
         );
         this.tokenBalance = null;
-        await this.updateDecimals();
-        await this.updateTokenBalance();
+        await Promise.all([
+          this.updateDecimals(),
+          this.updateTokenBalance()
+        ])
       } catch (e) {
         this.processError(e);
       }
@@ -320,6 +322,7 @@ export default {
     },
     async authorize() {
       try {
+        // 下面两个步骤有先后关系 不能使用Promise.all
         await this.$store.dispatch("authorize");
         await this.updateTokenBalance();
       } catch (e) {
@@ -396,7 +399,7 @@ export default {
 
         let pendingTx;
         this.latestTransactionInfo.csv = this.csv;
-        this.latestTransactionInfo.networkVersion = this.networkVersion;
+        this.latestTransactionInfo.chainId = this.chainId;
 
         // 根据选择的Token是否是CFX构造交易
         if (!this.isNativeToken) {
@@ -450,8 +453,12 @@ export default {
         this.latestTransactionInfo.hash = receipt.transactionHash;
         this.txState = TxState.Executed;
 
-        await this.$store.dispatch("updateCfxBalance");
-        await this.updateTokenBalance();
+        await Promise.all([
+          this.$store.dispatch("updateCfxBalance"),
+          this.updateTokenBalance()
+        ])
+        // await this.$store.dispatch("updateCfxBalance");
+        // await this.updateTokenBalance();
 
         this.notifyTxState();
         receipt = await pendingTx.confirmed();
@@ -516,7 +523,7 @@ export default {
         csv: null,
         selectedToken: null,
         tokenAddress: null,
-        networkVersion: null,
+        chainId: null,
         confirmDate: null,
         from: null,
       };

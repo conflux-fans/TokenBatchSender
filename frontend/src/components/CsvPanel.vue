@@ -100,44 +100,12 @@ import Papa from 'papaparse'
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'networkVersion', 'selectedToken'],
+  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken'],
   data() {
     return {
     };
   },
   methods: {
-    netWorkType(address) {
-      return NetworkType.fromNetId(this.getNetId(address))
-    },
-    getNetId(address) {
-      if (this.sdk.address.hasNetworkPrefix(address)) {
-        return this.sdk.address.decodeCfxAddress(address).netId;
-      } else {
-        // an invalid address will throw an error
-        this.sdk.format.hexAddress(address)
-        return -1
-      }
-    },
-    isValidAddressForNet(accountAddress) {
-      const id = this.getNetId(accountAddress);
-
-      const accountType = this.netWorkType(accountAddress);
-      const netType = NetworkType.fromNetId(parseInt(this.nerworkVersion));
-
-      switch (netType) {
-        case NetworkType.MainNet:
-          return accountType === NetworkType.MainNet || accountType === NetworkType.NotSpecified
-        case NetworkType.TestNet:
-          // 可能为id不为1的测试网 / 本地网  
-          if (accountType !== NetworkType.TestNet) {
-            return true
-          } else {
-            return parseInt(id) === parseInt(this.networkVersion)
-          }
-        default:
-          throw new Error('unexpected portal network id: ' + this.networkVersion)
-      }
-    },
     handlePreview(file) {
       this.processCSV(file);
 
@@ -173,14 +141,14 @@ export default {
               }
             }
 
-            if (!this.isValidAddressForNet(addr)) {
+            if (!NetworkType.isValidAddress(addr, this.chainId, this.sdk)) {
               throw new Error('address is not valid')
             }
             if (isNaN(val)) {
               throw new Error('value is not valid')
             }
 
-            tos.push(this.sdk.format.address(addr, parseInt(this.networkVersion)));
+            tos.push(this.sdk.format.address(addr, parseInt(this.chainId)));
             vals.push(parseFloat(val));
             
           } catch (e) {
