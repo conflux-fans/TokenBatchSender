@@ -48,13 +48,11 @@
     <el-row v-if="fileUploaded && !isCsvError">
       <el-table :data="tableData" height="283" v-loading="!isFreeState" stripe>
         <el-table-column
-          fixed
           prop="address"
           :label="$t('message.address')"
           width="400"
         ></el-table-column>
         <el-table-column
-          fixed
           prop="value"
           :label="$t('message.tokenAmount')"
           width="300"
@@ -62,7 +60,11 @@
       </el-table>
     </el-row>
     <el-row v-if="isCsvError">
-      <div v-html="csvErrorMessage" style="color:red"></div>
+      <div style="color:red; height: 240px; overflow:scroll" class="bold-font">
+        <ul>
+          <li v-for="msg in csvErrorMessageList" v-bind:key="msg">{{ msg }}</li>
+        </ul>
+      </div>
     </el-row>
     <el-row v-if="isCsvError || fileUploaded" style="text-align: left">
       <el-col :span=3>
@@ -76,7 +78,7 @@
         >
       </el-col>
       <el-col :offset=2 :span=3>
-        <el-tooltip effect="light" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken) && Boolean(account)">
+        <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken) && Boolean(account)">
           <div>
             <el-button
               size="medium"
@@ -95,7 +97,7 @@
 <script>
 import { ErrorType, NetworkType } from '../enums'
 import { preciseSum } from '../utils'
-import Papa from 'papaparse'
+import { parse } from 'papaparse'
 
 
 export default {
@@ -106,6 +108,7 @@ export default {
     };
   },
   methods: {
+    // upload 组件在选择文件后会自动上传 本函数会在上传前调用并返回false 代表上传取消
     handlePreview(file) {
       this.processCSV(file);
 
@@ -114,8 +117,11 @@ export default {
     },
     async processCSV(file) {
       try {
+        if (file.type !== 'text/csv') {
+          throw new Error(`Invalid file format: ${file.name}`)
+        }
         const c = await file.text();
-        const rows = Papa.parse(c).data
+        const rows = parse(c).data
 
         let tos = [];
         let vals = [];
@@ -123,10 +129,13 @@ export default {
 
         for (let i = 0; i < rows.length; ++i) {
           const results = rows[i];
+
+          // 空行，会跳过其他判断直接进行下一行的处理
           if (results.length === 1 && !results[0]) {
             continue
           }
 
+          // 对每一行都进行错误检查 最后将所有行的错误一起抛出
           try {
             if (results.length !== 2) {
               throw new Error('column count is not 2')
@@ -135,6 +144,7 @@ export default {
             const addr = results[0].trim()
             const val = results[1].trim()
 
+            // 对标题行的判断
             if (i === 0) {
               if(addr === 'address' && val === 'amount') {
                 continue
@@ -142,24 +152,25 @@ export default {
             }
 
             if (!NetworkType.isValidAddress(addr, this.chainId, this.sdk)) {
-              throw new Error('address is not valid')
+              throw new Error(`Address is not valid for current network: ${addr}`)
             }
             if (isNaN(val)) {
-              throw new Error('value is not valid')
+              throw new Error(`Unexpected value: ${val} is not a number`)
+            }
+            if (val <= 0) {
+              throw new Error(`Transfer amount should be greater than zero: ${val}`)
             }
 
             tos.push(this.sdk.format.address(addr, parseInt(this.chainId)));
             vals.push(parseFloat(val));
             
           } catch (e) {
-            csv_msg.push(`ERROR: CSV row ${i+1} - ${e.message}`)
+            csv_msg.push(`ERROR: CSV ROW ${i+1} - ${e.message}`)
           }
         }
 
         if(csv_msg.length !== 0) {
-          const msg = csv_msg.join("<br>")
-          const tmp = new Error(msg)
-          throw tmp
+          throw new Error(csv_msg.join("\n"))
         }
         this.$emit('set-csv', {
           tos,
@@ -176,6 +187,9 @@ export default {
     }
   },
   computed: {
+    effect() {
+      return this.$store.state.effect;
+    },
     disabledTooltip() {
       if (!this.account) {
         return this.$t("message.warning.connectionWarning")
@@ -198,8 +212,8 @@ export default {
     isCsvError() {
       return Boolean(this.csvError)
     },
-    csvErrorMessage() {
-      return this.csvError.message
+    csvErrorMessageList() {
+      return this.csvError.message.split('\n')
     },
     tableData() {
       if (this.csv == null) return null
@@ -231,5 +245,9 @@ export default {
 }
 .el-upload__tip /deep/ .el-row {
   margin: 2px;
+}
+
+li {
+  margin: 8px
 }
 </style>

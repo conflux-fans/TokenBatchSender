@@ -9,7 +9,7 @@
             <label class="white-font bold-font">{{ $t("message.title") }}</label>
           </el-col>
           <el-col :offset="9" :span="3">
-            <el-tooltip effect="light" :content="$t('message.tooltip.networkTooltip')">
+            <el-tooltip :effect="effect" :content="$t('message.tooltip.networkTooltip')">
               <el-tag>{{networkText}}</el-tag>
             </el-tooltip>
           </el-col>
@@ -133,6 +133,9 @@ export default {
           return this.$i18n.locale;
       }
     },
+    effect() {
+      return this.$store.state.effect
+    }
   },
   mounted() {
     // executed immediately after page is fully loaded
@@ -157,6 +160,7 @@ export default {
     chainId() {
       this.selectedToken = ""
     },
+    // 当账户变化时关闭账户弹窗
     account(newVal) {
       if (!newVal) {
         this.accountDialogVisible = false
