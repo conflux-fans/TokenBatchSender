@@ -28,11 +28,6 @@ const options = [
     contractName: "cUSDT-testnet",
   },
   {
-    contractName: "GLD",
-    label: "测试Token GLD",
-    address: "cfxtest:ace0ea1x6st1spm1jwfces43tder2yewz2vtx8hxrt",
-  },
-  {
     contractName: "D6",
     label: "测试Token Decimal6", // ERC777 的非法实现
     address: "cfxtest:aca6v0d4k90ys8ymfuk1ay0hubs0h7yhdje2ht916e",

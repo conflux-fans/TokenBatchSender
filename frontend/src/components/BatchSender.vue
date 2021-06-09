@@ -400,6 +400,7 @@ export default {
         let pendingTx;
         this.latestTransactionInfo.csv = this.csv;
         this.latestTransactionInfo.chainId = this.chainId;
+        this.latestTransactionInfo.selectedToken = this.selectedToken;
 
         // 根据选择的Token是否是CFX构造交易
         if (!this.isNativeToken) {
@@ -420,7 +421,6 @@ export default {
             gas: estimate.gasLimit,
           });
 
-          this.latestTransactionInfo.selectedToken = this.selectedToken;
           this.latestTransactionInfo.tokenAddress = this.contract.address;
         } else {
           const tx = this.routingContract.distributeCfx(
@@ -439,7 +439,6 @@ export default {
             gas: estimate.gasLimit,
           });
 
-          this.latestTransactionInfo.selectedToken = "CFX";
           // 传 cfx 时下面这个字段不会展示，但暂且先保留
           this.latestTransactionInfo.tokenAddress = this.routingContract.address;
         }
