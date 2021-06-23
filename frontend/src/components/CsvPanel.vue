@@ -117,7 +117,8 @@ export default {
     },
     async processCSV(file) {
       try {
-        if (file.type !== 'text/csv') {
+        let tmp = file.name.split(".")
+        if (tmp.length > 1 && tmp[tmp.length - 1] !== "csv") {
           throw new Error(`Invalid file format: ${file.name}`)
         }
         const c = await file.text();
