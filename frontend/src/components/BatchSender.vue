@@ -481,8 +481,8 @@ export default {
       }
     },
     processError(err) {
-      console.log(err);
-      console.log(err._type);
+      console.error(err);
+      console.error(err._type);
       // balanceError csvError transactionError
       switch (err._type) {
         case ErrorType.BalanceError:

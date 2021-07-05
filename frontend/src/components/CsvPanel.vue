@@ -36,7 +36,7 @@
         </div>
       </el-upload>
     </el-row>
-    <el-row v-if="fileUploaded && !isCsvError" type="flex" justify="left">
+    <el-row v-if="fileUploaded && !isCsvError && !isProcessing" type="flex" justify="left">
       <el-col :span="6">
           <div>{{ $t('message.transferSum') }}: {{amountSum}}</div>
         </el-col>
@@ -46,7 +46,7 @@
     </el-row>
 
     <el-row v-if="fileUploaded && !isCsvError">
-      <el-table :data="tableData" height="283" v-loading="!isFreeState" stripe>
+      <el-table :data="tableData" height="283" v-loading="!isFreeState || isProcessing" stripe>
         <el-table-column
           prop="address"
           :label="$t('message.address')"
@@ -73,7 +73,7 @@
           type="info"
           v-if="isCsvError || fileUploaded"
           @click="resetCsv"
-          :disabled="!isFreeState"
+          :disabled="!isFreeState || isProcessing"
           >{{$t('message.command.resetCsv')}}</el-button
         >
       </el-col>
@@ -85,7 +85,7 @@
               type="danger"
               v-if="fileUploaded"
               @click="$emit('transfer')"
-              :disabled="!isFreeState || !selectedToken || !account"
+              :disabled="!isFreeState || !selectedToken || !account || isProcessing"
               >{{$t('message.command.send')}}</el-button
             >
           </div>
@@ -95,21 +95,24 @@
   </el-card>
 </template>
 <script>
-import { ErrorType, NetworkType } from '../enums'
+import { ErrorType } from '../enums'
 import { preciseSum } from '../utils'
-import { parse } from 'papaparse'
-
+// import { parse } from 'papaparse'
+import Worker from '../worker/process-csv.worker'
 
 export default {
   name: "CsvPanel",
   props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken'],
   data() {
     return {
+      isProcessing: false,
     };
   },
   methods: {
     // upload 组件在选择文件后会自动上传 本函数会在上传前调用并返回false 代表上传取消
     handlePreview(file) {
+      this.isProcessing = true
+      console.log(this.fileUploaded)
       this.processCSV(file);
 
       // return false, then upload action will not be triggered
@@ -122,62 +125,31 @@ export default {
           throw new Error(`Invalid file format: ${file.name}`)
         }
         const c = await file.text();
-        const rows = parse(c).data
 
-        let tos = [];
-        let vals = [];
-        let csv_msg = []
-
-        for (let i = 0; i < rows.length; ++i) {
-          const results = rows[i];
-
-          // 空行，会跳过其他判断直接进行下一行的处理
-          if (results.length === 1 && !results[0]) {
-            continue
-          }
-
-          // 对每一行都进行错误检查 最后将所有行的错误一起抛出
-          try {
-            if (results.length !== 2) {
-              throw new Error('column count is not 2')
-            }
-
-            const addr = results[0].trim()
-            const val = results[1].trim()
-
-            // 对标题行的判断
-            if (i === 0) {
-              if(addr === 'address' && val === 'amount') {
-                continue
-              }
-            }
-
-            if (!NetworkType.isValidAddress(addr, this.chainId, this.sdk)) {
-              throw new Error(`Address is not valid for current network: ${addr}`)
-            }
-            if (isNaN(val)) {
-              throw new Error(`Unexpected value: ${val} is not a number`)
-            }
-            if (val <= 0) {
-              throw new Error(`Transfer amount should be greater than zero: ${val}`)
-            }
-
-            tos.push(this.sdk.format.address(addr, parseInt(this.chainId)));
-            vals.push(parseFloat(val));
-            
-          } catch (e) {
-            csv_msg.push(`ERROR: CSV ROW ${i+1} - ${e.message}`)
-          }
-        }
-
-        if(csv_msg.length !== 0) {
-          throw new Error(csv_msg.join("\n"))
-        }
-        this.$emit('set-csv', {
-          tos,
-          vals
+        let worker = new Worker()
+        worker.postMessage({
+          text: c,
+          chainId: this.chainId
         })
-        
+
+        worker.onmessage = (msg) => {
+          if (msg.data.from === 'process-csv') {
+            this.isProcessing = false
+            let error = msg.data.error
+            let csv = msg.data.csv
+            if (csv) {
+              this.$emit('set-csv', csv)
+            } else if (error) {
+              error._type = ErrorType.CsvError
+              this.$emit('process-error', error);
+            } else {
+              console.log(msg)
+              let e = new Error(`Unexpected worker message: ${msg.data}`)
+              e._Type = ErrorType.CsvError
+              this.$emit('process-error', e);
+            }
+          }
+        }
       } catch (err) {
         err._type = ErrorType.CsvError;
         this.$emit('process-error', err);
@@ -208,7 +180,7 @@ export default {
       return this.$store.state.sdk
     },
     fileUploaded() {
-      return this.csv !== null;
+      return this.csv !== null || this.isProcessing;
     },
     isCsvError() {
       return Boolean(this.csvError)
@@ -228,10 +200,14 @@ export default {
       return tmp;
     },
     amountSum() {
-      return preciseSum(this.csv.vals)
+      if(this.csv?.vals) 
+        return preciseSum(this.csv.vals)
+      return null
     },
     length() {
-      return this.csv.tos.length
+      if(this.csv?.tos) 
+        return this.csv.tos.length
+      return null
     },
   }
 };
