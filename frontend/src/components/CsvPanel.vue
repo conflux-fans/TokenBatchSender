@@ -122,7 +122,7 @@ export default {
       try {
         let tmp = file.name.split(".")
         if (tmp.length > 1 && tmp[tmp.length - 1] !== "csv") {
-          throw new Error(`Invalid file format: ${file.name}`)
+          throw new Error(`Invalid file format: ${file.name}. Only .csv files are supported`)
         }
         const c = await file.text();
 
