@@ -2,7 +2,7 @@
   <el-card v-if="transactionList.length">
     <div slot="header" class="bold-font">
       <span>{{ $t('message.historyTransactions') }}</span>
-      <el-tooltip effect="light" :content="$t('message.tooltip.historyTransactions')">
+      <el-tooltip :effect="effect" :content="$t('message.tooltip.historyTransactions')">
         <i class="header-icon el-icon-info"></i>
       </el-tooltip>
       
@@ -40,6 +40,9 @@ export default {
     
   },
   computed: {
+    effect() {
+      return this.$store.state.effect;
+    },
     reversedTransactionList() {
       return this.transactionList.slice().reverse();
     }

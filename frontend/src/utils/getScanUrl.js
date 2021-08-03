@@ -1,9 +1,9 @@
-const testNetUrl = "https://testnet.confluxscan.io"
-const mainNetUrl = "https://confluxscan.io"
+const testScanNetUrl = "https://testnet.confluxscan.io"
+const mainNetScanUrl = "https://confluxscan.io"
 
 const prefixMap = {
-  1: testNetUrl,
-  1029: mainNetUrl,
+  1: testScanNetUrl,
+  1029: mainNetScanUrl,
 }
 
 /**

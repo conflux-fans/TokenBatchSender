@@ -14,7 +14,8 @@ const store = new Vuex.Store({
     conflux: null,
     account: null,
     cfxBalance: null,
-    confluxJS: null
+    confluxJS: null,
+    effect: 'light'
   },
   getters: {
     simplifiedAccount: state => {

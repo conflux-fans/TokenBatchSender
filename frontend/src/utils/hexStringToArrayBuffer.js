@@ -1,4 +1,10 @@
-
+/**
+ * Convert a hex string to an ArrayBuffer.
+ * https://gist.github.com/don/871170d88cf6b9007f7663fdbc23fe09
+ * 
+ * @param {string} hexString - hex representation of bytes
+ * @return {ArrayBuffer} - The bytes in an ArrayBuffer.
+ */
 function hexStringToArrayBuffer(hexString) {
   // remove the leading 0x
   hexString = hexString.replace(/^0x/, "");

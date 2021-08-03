@@ -5,7 +5,7 @@
         <span>{{$t('message.currentTransactionStatus')}}</span>
       </el-col>
       <el-col :span="12">
-        <el-tag :effect="tagTheme" :type="stateType" @click="$emit('show-tx-state')" style="cursor: pointer" size="mini">{{ txState }}</el-tag>
+        <el-tag :effect="effect" :type="stateType" @click="$emit('show-tx-state')" style="cursor: pointer" size="mini">{{ txState }}</el-tag>
       </el-col>
     </el-row>
     <el-collapse>
@@ -19,7 +19,7 @@ import TransactionLine from './TransactionLine.vue';
 export default {
   components: { TransactionLine },
   name: 'CurrentTransactionPanel',
-  props: ['latestTransactionInfo', 'tagTheme', "stateType", "txState"],
+  props: ['latestTransactionInfo', "stateType", "txState"],
   data() {
     return {
     }
@@ -28,7 +28,9 @@ export default {
     
   },
   computed: {
-    
+    effect() {
+      return this.$store.state.effect
+    }
   }
 };
 </script>
