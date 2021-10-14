@@ -33,7 +33,6 @@
                 >
                 </el-option>
               </el-select>
-
             </el-col>
             <el-col :offset="2" :span="10">
               <div class="full-width">
@@ -42,10 +41,10 @@
             </el-col>
             <el-col :span="1">
               <el-tooltip
-                v-if="isNativeToken?cfxBalance:tokenBalance"
+                v-if="isNativeToken ? cfxBalance : tokenBalance"
                 class="item"
                 :effect="effect"
-                :content="isNativeToken?cfxBalance:tokenBalance"
+                :content="isNativeToken ? cfxBalance : tokenBalance"
                 placement="bottom-end"
               >
                 <div class="right-align bold-font">
@@ -73,6 +72,7 @@
           v-on:set-csv="setCsv"
           v-on:reset-csv="resetCsv"
           v-on:transfer="transfer"
+          v-on:transfer-in-compatible-mode="transferInCompatibleMode"
         >
         </csv-panel>
       </el-col>
@@ -96,15 +96,38 @@
       </el-col>
     </el-row>
     <el-dialog
-        :visible.sync="txStateDialogVisible"
-        :title="$t('message.currentTransactionStatus')"
-        width="45%"
-        :show-close="false"
-      >
-        <el-row class="no-break">
-          {{ stateMessage }}
-        </el-row>
-      </el-dialog>
+      :visible.sync="txStateDialogVisible"
+      :title="$t('message.currentTransactionStatus')"
+      width="45%"
+      :show-close="false"
+    >
+      <el-row class="no-break">
+        {{ stateMessage }}
+      </el-row>
+    </el-dialog>
+    <el-dialog
+      :visible.sync="compatibleDiaglogVisible"
+      :title="$t('message.command.sendInCompatibleMode')"
+      width="45%"
+    >
+      <el-row>
+        <el-upload
+          class="full-width"
+          action="/hello"
+          :before-upload="handleSk"
+        >
+          <el-button
+            style="flex"
+          >上传私钥<i class="el-icon-upload2" style="font-size: 3em"></i>
+          </el-button>
+        </el-upload>
+      </el-row>
+      <el-row>
+        <el-button
+          @click="doTransferInCompatibleMode"
+        >send</el-button>
+      </el-row>
+    </el-dialog>
   </div>
 </template>
 
@@ -129,7 +152,7 @@ export default {
       // csv = {tos, vals} 为csv中提供的原始数据 其中vals单位为CFX
       csv: null,
       selectedToken: "",
-      decimals: '18',
+      decimals: "18",
 
       contract: null,
       tokenBalance: null,
@@ -153,6 +176,10 @@ export default {
       },
 
       txStateDialogVisible: false,
+      compatibleDiaglogVisible: false,
+
+      tmp_cfx: null,
+      tmp_account: null
     };
   },
   computed: {
@@ -181,7 +208,7 @@ export default {
       return this.conflux?.chainId;
     },
     isNativeToken() {
-      return this.selectedToken === "CFX"
+      return this.selectedToken === "CFX";
     },
     queryingBalance() {
       if (this.isNativeToken) {
@@ -191,11 +218,11 @@ export default {
       }
 
       if (!this.account) {
-        return this.$t("message.warning.connectionWarning")
+        return this.$t("message.warning.connectionWarning");
       }
 
-      if(!this.selectedToken) {
-        return this.$t("message.warning.tokenWarning")
+      if (!this.selectedToken) {
+        return this.$t("message.warning.tokenWarning");
       }
 
       // tokenBalance is updated using async function
@@ -205,8 +232,10 @@ export default {
         : this.$t("message.onRequest");
     },
     routingContract() {
-      if (!this.confluxJS) return null
-      return this.confluxJS.Contract(routingContractConfig[parseInt(this.chainId)]);
+      if (!this.confluxJS) return null;
+      return this.confluxJS.Contract(
+        routingContractConfig[parseInt(this.chainId)]
+      );
     },
     stateType() {
       switch (this.txState) {
@@ -242,62 +271,63 @@ export default {
       return this.$store.state.account !== null;
     },
     options() {
-      const tmp = [{
-        label: "CFX",
-        value: "CFX"
-      }];
+      const tmp = [
+        {
+          label: "CFX",
+          value: "CFX",
+        },
+      ];
       if (!tokenConfig) {
-        return tmp
+        return tmp;
       }
       Object.keys(tokenConfig).forEach((option) => {
         // not strict equal
-        if(this.$store.state.sdk?.address?.decodeCfxAddress(tokenConfig[option].address)?.netId == this.$store.state.conflux?.chainId) {
+        if (
+          this.$store.state.sdk?.address?.decodeCfxAddress(
+            tokenConfig[option].address
+          )?.netId == this.$store.state.conflux?.chainId
+        ) {
           tmp.push({
             value: option,
             label: tokenConfig[option].label,
           });
         }
       });
-      return tmp
-    }
+      return tmp;
+    },
   },
   watch: {
     transactionList(newVal) {
       localStorage.transactionList = JSON.stringify(newVal);
     },
     async account(newVal) {
-      if(newVal) {
+      if (newVal) {
         // 异步操作
-        await this.updateTokenBalance()
+        await this.updateTokenBalance();
       } else {
-        this.resetBalance()
+        this.resetBalance();
       }
     },
     async selectedToken(newVal) {
       console.log("Selected token changed to %s", newVal);
 
-      if(newVal === "CFX") {
-        this.contract = null
-        this.decimals = 18
-        return
+      if (newVal === "CFX") {
+        this.contract = null;
+        this.decimals = 18;
+        return;
       }
 
       try {
-        this.contract = this.confluxJS.Contract(
-          tokenConfig[newVal]
-        );
+        this.contract = this.confluxJS.Contract(tokenConfig[newVal]);
         this.tokenBalance = null;
-        await Promise.all([
-          this.updateDecimals(),
-          this.updateTokenBalance()
-        ])
+        await Promise.all([this.updateDecimals(), this.updateTokenBalance()]);
       } catch (e) {
         this.processError(e);
       }
-    }
+    },
   },
   mounted() {
-    this.fetchTransactionList()
+    this.fetchTransactionList();
 
     // executed immediately after page is fully loaded
     this.$nextTick(function () {
@@ -305,11 +335,30 @@ export default {
     });
   },
   methods: {
+    handleSk(file) {
+      this.tmp_conflux = null
+      this.processSk(file)
+      return false
+    },
+    async processSk(file) {
+      try {
+        const sk = await file.text()
+        // TODO: change according to network
+        this.tmp_conflux = new this.sdk.Conflux({
+          url: "https://test.confluxrpc.com",
+          networkId: 1,
+        })
+        this.tmp_account = this.tmp_conflux.wallet.addPrivateKey(sk)
+
+      } catch (err) {
+        console.log(err)
+      }
+    },
     fetchTransactionList() {
-      if(localStorage.transactionList) {
+      if (localStorage.transactionList) {
         this.transactionList = JSON.parse(localStorage.transactionList);
       } else {
-        this.transactionList = []
+        this.transactionList = [];
       }
     },
     notifyTxState() {
@@ -330,18 +379,15 @@ export default {
       }
     },
     showTxState() {
-      this.txStateDialogVisible = true
+      this.txStateDialogVisible = true;
     },
     async updateDecimals() {
       try {
         if (!this.contract) {
           return;
         }
-
-        this.decimals = this.$t('message.onRequest');
-        const decimals = (
-          await this.contract.decimals()
-        ).toString();
+        this.decimals = this.$t("message.onRequest");
+        const decimals = (await this.contract.decimals()).toString();
         this.decimals = decimals;
       } catch (e) {
         // 事实上 decimals() 接口为可选的实现项，因此需要考虑未实现decimals()的情况
@@ -372,7 +418,7 @@ export default {
     },
     fromCfxToDripWithDecimals(cfx) {
       // e.g. decimals = 6, deltaDecimal = 12
-      // then 1 token is actually 1e6 drip, 
+      // then 1 token is actually 1e6 drip,
       const deltaDecimal = 18 - this.decimals;
       return this.sdk.Drip.fromCFX(moveDecimal(cfx, -deltaDecimal)).toString();
     },
@@ -381,7 +427,7 @@ export default {
       try {
         // 重新获取授权
         await this.authorize();
-        this.latestTransactionInfo.from = this.account
+        this.latestTransactionInfo.from = this.account;
 
         const data = this.web3.eth.abi.encodeParameters(
           ["address[]", "uint256[]"],
@@ -440,7 +486,8 @@ export default {
           });
 
           // 传 cfx 时下面这个字段不会展示，但暂且先保留
-          this.latestTransactionInfo.tokenAddress = this.routingContract.address;
+          this.latestTransactionInfo.tokenAddress =
+            this.routingContract.address;
         }
 
         // this step will ask user for authorization
@@ -454,8 +501,8 @@ export default {
 
         await Promise.all([
           this.$store.dispatch("updateCfxBalance"),
-          this.updateTokenBalance()
-        ])
+          this.updateTokenBalance(),
+        ]);
         // await this.$store.dispatch("updateCfxBalance");
         // await this.updateTokenBalance();
 
@@ -465,7 +512,7 @@ export default {
 
         // 不排除用户会同时开多个窗口的可能，因此需要在更新前拉取一下
         // 这样可以最大程度避免多开窗口造成的历史交易记录丢失
-        this.fetchTransactionList()
+        this.fetchTransactionList();
         // deep copy
         this.transactionList.push(
           JSON.parse(JSON.stringify(this.latestTransactionInfo))
@@ -480,6 +527,32 @@ export default {
         this.processError(err);
       }
     },
+    async transferInCompatibleMode() {
+      this.compatibleDiaglogVisible = true
+    },
+    async doTransferInCompatibleMode() {
+      try {
+        // TODO: accelerate?
+        // TODO: contract
+        // let nonce = await this.tmp_conflux.getNextNonce(this.tmp_account.address)
+        // console.log(nonce)
+        for (let i = 0; i < this.csv.tos.length; i+=1){
+          console.log("begin ", i)
+          let tx = await this.tmp_conflux.sendTransaction({
+            from: this.tmp_account,
+            to: this.csv.tos[i],
+            value: this.fromCfxToDripWithDecimals(this.csv.vals[i]),
+            // nonce
+          }).executed()
+          // nonce += 1
+          console.log(tx)
+          console.log(i, "th transaction executed")
+        }
+        console.log("finish")
+      } catch (err) {
+        this.processError(err)
+      }
+    },
     processError(err) {
       console.error(err);
       console.error(err._type);
@@ -489,7 +562,7 @@ export default {
           this.tokenBalance = null;
           this.$store.commit("resetCfxBalance");
           this.errors[err._type] = err;
-          this.$alert(err.message, this.$t('message.error.error'));
+          this.$alert(err.message, this.$t("message.error.error"));
           break;
         case ErrorType.CsvError:
           this.errors[err._type] = err;
@@ -497,9 +570,10 @@ export default {
         case ErrorType.TransactionError:
           this.errors[err._type] = err;
           this.txState = TxState.Error;
-          this.$alert(err.message, this.$t('message.error.transactionError'));
+          this.$alert(err.message, this.$t("message.error.transactionError"));
           break;
         default:
+          this.$alert(err.message, this.$t("message.error.error"));
       }
       // console.log(this.errors)
     },

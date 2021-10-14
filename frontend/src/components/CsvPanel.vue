@@ -33,6 +33,9 @@
           <el-row>
             {{$t('message.tooltip.csv.big')}}
           </el-row>
+          <el-row>
+            {{$t('message.tooltip.csv.compat')}}
+          </el-row>
         </div>
       </el-upload>
     </el-row>
@@ -87,6 +90,21 @@
               @click="$emit('transfer')"
               :disabled="!isFreeState || !selectedToken || !account || isProcessing"
               >{{$t('message.command.send')}}</el-button
+            >
+          </div>
+        </el-tooltip>
+      </el-col>
+
+      <el-col :offset=2 :span=3>
+        <el-tooltip :effect="effect" :content="disabledTooltipCompatible" placement="right" :disabled="Boolean(selectedToken)">
+          <div>
+            <el-button
+              size="medium"
+              type="danger"
+              v-if="fileUploaded"
+              @click="$emit('transfer-in-compatible-mode')"
+              :disabled="!isFreeState || !selectedToken || isProcessing"
+              >{{$t('message.command.sendInCompatibleMode')}}</el-button
             >
           </div>
         </el-tooltip>
@@ -167,6 +185,13 @@ export default {
       if (!this.account) {
         return this.$t("message.warning.connectionWarning")
       }
+
+      if(!this.selectedToken) {
+        return this.$t("message.warning.tokenWarning")
+      }
+      return null
+    },
+    disabledTooltipCompatible() {
 
       if(!this.selectedToken) {
         return this.$t("message.warning.tokenWarning")

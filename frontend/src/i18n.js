@@ -34,6 +34,7 @@ const messages = {
         clearHistory: 'CLEAR HISTORY',
         resetCsv: 'RESET CSV',
         send: 'SEND',
+        sendInCompatibleMode: 'SEND in Compatible Mode',
       },
       error: {
         networkError: 'Network Error',
@@ -62,6 +63,7 @@ const messages = {
           format: 'Each row is composed of 2 columns: address and amount',
           titleLine: 'Title line is not required. If added, title line MUST be "address, amount"',
           big: 'May wait for a while for big CSV files',
+          compat: 'The sender batches transactions a into single transaction, which method is not compatible with some wallets / exchange',
           checkExample: 'Check example',
         },
       }
@@ -102,6 +104,7 @@ const messages = {
           clearHistory: '清空历史交易',
           resetCsv: '重置CSV文件',
           send: '批量转账',
+          sendInCompatibleMode: '以兼容模式批量转账',
         },
         error: {
           networkError: '网络错误',
@@ -130,6 +133,7 @@ const messages = {
             format: '每行为一组数据，第一列为地址，第二列为转账代币数量',
             titleLine: '不需要添加标题行，如果添加，标题行格式只能为 address, amount',
             big: '文件较大时请稍作等待',
+            compat: '本工具利用智能合约将批量交易打包成单个交易，该方式可能与部分钱包/交易所不兼容',
             checkExample: '查看示例',
           },
         }
