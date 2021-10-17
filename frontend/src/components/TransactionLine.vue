@@ -15,7 +15,7 @@
           <div >{{formattedDate}} </div>
         </el-col>
       </el-row>
-    <el-row>
+    <el-row v-if="transactionInfo.hash">
       <span>{{$t('message.transactionHash')}}：<el-link :href="scanTransacationUrl" type="primary" target="_blank">{{hash}} <i class="el-icon-top-right el-icon--right"></i></el-link></span>
     </el-row>
     <el-row>
@@ -39,6 +39,13 @@
           fixed
           prop="value"
           :label="$t('message.tokenAmount')"
+          width="100"
+        ></el-table-column>
+        <el-table-column
+          v-if="transactionInfo.hashes"
+          fixed
+          prop="hash"
+          label="hash"
           width="300"
         ></el-table-column>
       </el-table>
@@ -56,9 +63,15 @@ export default {
     };
   },
   computed: {
+    // a normal transaction has hash field,
+    // while in compatible mode, transaction is actually composed of several transactions,
+    // which has hashes field
     hash() {
       return this.transactionInfo.hash
     },
+    // hashes() {
+    //   return this.transactionInfo.hashes
+    // },
     csv() {
       return this.transactionInfo.csv
     },
@@ -85,10 +98,24 @@ export default {
       if (this.csv == null) return null
       const tmp = [];
       for (let i = 0; i < this.csv.tos.length; i++) {
-        tmp.push({
-          address: this.csv.tos[i],
-          value: this.csv.vals[i],
-        });
+        // tmp.push({
+        //   address: this.csv.tos[i],
+        //   value: this.csv.vals[i],
+        //   hash: null
+        // });
+        if (this.transactionInfo.hashes) {
+          tmp.push({
+            address: this.csv.tos[i],
+            value: this.csv.vals[i],
+            hash: this.transactionInfo.hashes[i]
+          });
+        } else {
+          tmp.push({
+            address: this.csv.tos[i],
+            value: this.csv.vals[i],
+            hash: null
+          });
+        }
       }
       return tmp;
     },

@@ -35,6 +35,7 @@ const messages = {
         resetCsv: 'RESET CSV',
         send: 'SEND',
         sendInCompatibleMode: 'SEND in Compatible Mode',
+        uploadSecretKey: 'UPLOAD SECRET KEY'
       },
       error: {
         networkError: 'Network Error',
@@ -63,9 +64,16 @@ const messages = {
           format: 'Each row is composed of 2 columns: address and amount',
           titleLine: 'Title line is not required. If added, title line MUST be "address, amount"',
           big: 'May wait for a while for big CSV files',
-          compat: 'The sender batches transactions a into single transaction, which method is not compatible with some wallets / exchange',
+          compat: 'This sender batches transactions into a single transaction, which implementation may be not compatible with some wallets / exchange. The problem could be solved by using compatible mode',
           checkExample: 'Check example',
         },
+        compatibleMode: {
+          warning: "WARNING for compatible mode",
+          atomic: "In compatible mode, transactions will be done one after another, which means there is no atomicity for the batch sending",
+          balance: "Making sure you have enough CFX for gas: we will check your balance is greater than the sum of transfer values, but gas cost will be ignore.",
+          secret: "Secret key file is required, otherwise you have to approve every transaction by using Conflux Portal",
+          error: "In compatible mode, one transaction will be sent after the previous one is EXECUTED. If any error occurs, the rest of the transactions will not be sent"
+        }
       }
     },
   },
@@ -105,6 +113,7 @@ const messages = {
           resetCsv: '重置CSV文件',
           send: '批量转账',
           sendInCompatibleMode: '以兼容模式批量转账',
+          uploadSecretKey: '上传私钥'
         },
         error: {
           networkError: '网络错误',
@@ -133,10 +142,18 @@ const messages = {
             format: '每行为一组数据，第一列为地址，第二列为转账代币数量',
             titleLine: '不需要添加标题行，如果添加，标题行格式只能为 address, amount',
             big: '文件较大时请稍作等待',
-            compat: '本工具利用智能合约将批量交易打包成单个交易，该方式可能与部分钱包/交易所不兼容',
+            compat: '本工具通过调用智能合约方法进行批量转账，该方式可能与部分钱包/交易所不兼容。兼容模式下能解决相应问题。',
             checkExample: '查看示例',
           },
-        }
+          compatibleMode: {
+            warning: "兼容模式须知",
+            atomic: "警告：兼容模式下交易将会逐笔进行，该模式无法保证批量转账的原子性",
+            balance: "转帐前将检测余额是否足够，但不会考虑gas消费，还请注意",
+            secret: "兼容模式需要您的私钥文件（否则使用Conflux Portal需要逐笔授权）",
+            error: "兼容模式下，当前一条交易执行后会发送后一笔交易，某条交易出错后，其后的交易将不会发送"
+          }
+        },
+        
       }
   }
 };
