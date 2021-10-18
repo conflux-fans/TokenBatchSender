@@ -35,7 +35,7 @@ const messages = {
         resetCsv: 'RESET CSV',
         send: 'SEND',
         sendInCompatibleMode: 'SEND in Compatible Mode',
-        uploadSecretKey: 'UPLOAD SECRET KEY'
+        uploadSecretKey: 'SELECT SECRET KEYSTORE FILE'
       },
       error: {
         networkError: 'Network Error',
@@ -68,6 +68,7 @@ const messages = {
           checkExample: 'Check example',
         },
         compatibleMode: {
+          password: "Password here",
           warning: "WARNING for compatible mode",
           atomic: "In compatible mode, transactions will be done one after another, which means there is no atomicity for the batch sending",
           balance: "Making sure you have enough CFX for gas: we will check your balance is greater than the sum of transfer values, but gas cost will be ignore.",
@@ -113,7 +114,7 @@ const messages = {
           resetCsv: '重置CSV文件',
           send: '批量转账',
           sendInCompatibleMode: '以兼容模式批量转账',
-          uploadSecretKey: '上传私钥'
+          uploadSecretKey: '上传私钥文件'
         },
         error: {
           networkError: '网络错误',
@@ -146,6 +147,7 @@ const messages = {
             checkExample: '查看示例',
           },
           compatibleMode: {
+            password: "请输入口令",
             warning: "兼容模式须知",
             atomic: "警告：兼容模式下交易将会逐笔进行，该模式无法保证批量转账的原子性",
             balance: "转帐前将检测余额是否足够，但不会考虑gas消费，还请注意",

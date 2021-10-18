@@ -110,7 +110,7 @@
       :title="$t('message.command.sendInCompatibleMode')"
       width="45%"
     >
-      <el-row v-if="!Boolean(tmp_account)">
+      <el-row v-if="!Boolean(tmp_keystore)">
         <el-upload
           class="full-width"
           action="/hello"
@@ -124,14 +124,15 @@
       </el-row>
       <div v-else>
         <el-row>
-          {{$t('message.sender')}}:
-          <el-link :href="tmpScanUrl" type="primary" target="_blank">{{tmp_account.address}} <i class="el-icon-top-right el-icon--right"></i></el-link>
-        </el-row>
-        <el-row>
-          <el-button
-            @click="doTransferInCompatibleMode"
-            type="danger"
-          >{{$t('message.command.sendInCompatibleMode')}}</el-button>
+          <el-col :span=8>
+            <el-input v-model="tmp_password" :placeholder="$t('message.tooltip.compatibleMode.password')" show-password></el-input>
+          </el-col>
+          <el-col :span=12>
+            <el-button
+              @click="doTransferInCompatibleMode"
+              type="danger"
+            >{{$t('message.command.sendInCompatibleMode')}}</el-button>
+          </el-col>
         </el-row>
       </div>
       <el-card>
@@ -157,7 +158,7 @@
 
 <script>
 import { tokenConfig, routingContractConfig } from "../contracts-config";
-import { hexStringToArrayBuffer, preciseSum, moveDecimal, getScanUrl } from "../utils";
+import { hexStringToArrayBuffer, preciseSum, moveDecimal } from "../utils";
 import { TxState, ErrorType } from "../enums";
 import Web3 from "web3";
 import CsvPanel from "./CsvPanel.vue";
@@ -204,6 +205,8 @@ export default {
       compatibleDiaglogVisible: false,
 
       tmp_cfx: null,
+      tmp_keystore: null,
+      tmp_password: "",
       tmp_account: null
     };
   },
@@ -320,9 +323,6 @@ export default {
       });
       return tmp;
     },
-    tmpScanUrl() {
-      return getScanUrl(this.tmp_account?.address, 'address', this.networkId)
-    },
   },
   watch: {
     transactionList(newVal) {
@@ -370,7 +370,7 @@ export default {
     },
     async processSk(file) {
       try {
-        const sk = await file.text()
+        const sk_v3 = JSON.parse(await file.text())
         // TODO i18n and reminders
         switch(this.chainId) {
           case "0x1":
@@ -388,8 +388,7 @@ export default {
           default:
             throw new Error("unexpected chainId: " + this.chainId)
         }
-        this.tmp_account = this.tmp_conflux.wallet.addPrivateKey(sk)
-
+        this.tmp_keystore = sk_v3
       } catch (err) {
         // console.log(err)
         err._type = ErrorType.CompatibleDialogError
@@ -575,6 +574,7 @@ export default {
     },
     async doTransferInCompatibleMode() {
       try {
+        this.tmp_account = this.tmp_conflux.wallet.addKeystore(this.tmp_keystore, this.tmp_password)
         // Do check
         let tmp_balance, tmp_contract
         if (this.isNativeToken) {
