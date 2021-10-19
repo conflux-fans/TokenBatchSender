@@ -80,7 +80,7 @@
           >{{$t('message.command.resetCsv')}}</el-button
         >
       </el-col>
-      <el-col :offset=2 :span=3>
+      <el-col :offset=2 :span=3 v-if="!directSendingMode">
         <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken) && Boolean(account)">
           <div>
             <el-button
@@ -95,7 +95,7 @@
         </el-tooltip>
       </el-col>
 
-      <el-col :offset=2 :span=3>
+      <el-col :offset=2 :span=3 v-else>
         <el-tooltip :effect="effect" :content="disabledTooltipDirectSending" placement="right" :disabled="Boolean(selectedToken)">
           <div>
             <el-button
@@ -181,6 +181,9 @@ export default {
   computed: {
     effect() {
       return this.$store.state.effect;
+    },
+    directSendingMode() {
+      return this.$store.state.directSendingMode;
     },
     disabledTooltip() {
       if (!this.account) {

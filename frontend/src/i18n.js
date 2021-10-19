@@ -68,6 +68,8 @@ const messages = {
           checkExample: 'Check example',
         },
         directSendingMode: {
+          modeOnTooltip: "Direct sending mode is on. The atomicity of sending is NOT preserved and will cost MUCH MORE time",
+          modeOffTooltip: "Direct sending mode is off",
           password: "Password here",
           warning: "WARNING for direct sending mode",
           atomic: "In direct sending mode, transactions will be done one after another, which means there is no atomicity for the batch sending",
@@ -147,6 +149,8 @@ const messages = {
             checkExample: '查看示例',
           },
           directSendingMode: {
+            modeOnTooltip: "直接转账模式已启用。该模式下批量转账的原子性无法保证，且交易将更耗时",
+            modeOffTooltip: "直接转账模式已关闭",
             password: "请输入口令",
             warning: "直接转账模式须知",
             atomic: "警告：直接转账模式下交易将会逐笔进行，该模式无法保证批量转账的原子性",
