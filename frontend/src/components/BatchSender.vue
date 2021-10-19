@@ -72,7 +72,7 @@
           v-on:set-csv="setCsv"
           v-on:reset-csv="resetCsv"
           v-on:transfer="transfer"
-          v-on:transfer-in-compatible-mode="transferInCompatibleMode"
+          v-on:transfer-in-direct-sending-mode="transferInDirectSendingMode"
         >
         </csv-panel>
       </el-col>
@@ -106,15 +106,15 @@
       </el-row>
     </el-dialog>
     <el-dialog
-      :visible.sync="compatibleDiaglogVisible"
-      :title="$t('message.command.sendInCompatibleMode')"
+      :visible.sync="directSendingDiaglogVisible"
+      :title="$t('message.command.sendInDirectSendingMode')"
       width="45%"
     >
       <el-row v-if="!Boolean(tmp_keystore)">
         <el-upload
           class="full-width"
           action="/hello"
-          :before-upload="handleSk"
+          :before-upload="handleKeystore"
         >
           <el-button
             type="danger"
@@ -125,30 +125,30 @@
       <div v-else>
         <el-row>
           <el-col :span=8>
-            <el-input v-model="tmp_password" :placeholder="$t('message.tooltip.compatibleMode.password')" show-password></el-input>
+            <el-input v-model="tmp_password" :placeholder="$t('message.tooltip.directSendingMode.password')" show-password></el-input>
           </el-col>
           <el-col :span=12>
             <el-button
-              @click="doTransferInCompatibleMode"
+              @click="doTransferUsingBatch"
               type="danger"
-            >{{$t('message.command.sendInCompatibleMode')}}</el-button>
+            >{{$t('message.command.sendInDirectSendingMode')}}</el-button>
           </el-col>
         </el-row>
       </div>
       <el-card>
-        <el-tag type="danger">{{$t('message.tooltip.compatibleMode.warning')}}</el-tag>
+        <el-tag type="danger">{{$t('message.tooltip.directSendingMode.warning')}}</el-tag>
         <ul>
           <li>
-            {{$t('message.tooltip.compatibleMode.atomic')}}
+            {{$t('message.tooltip.directSendingMode.atomic')}}
           </li>
           <li>
-            {{$t('message.tooltip.compatibleMode.balance')}}
+            {{$t('message.tooltip.directSendingMode.balance')}}
           </li>
           <li>
-            {{$t('message.tooltip.compatibleMode.secret')}}
+            {{$t('message.tooltip.directSendingMode.secret')}}
           </li>
           <li>
-            {{$t('message.tooltip.compatibleMode.error')}}
+            {{$t('message.tooltip.directSendingMode.error')}}
           </li>
         </ul>
       </el-card>
@@ -158,7 +158,7 @@
 
 <script>
 import { tokenConfig, routingContractConfig } from "../contracts-config";
-import { hexStringToArrayBuffer, preciseSum, moveDecimal } from "../utils";
+import { hexStringToArrayBuffer, preciseSum, moveDecimal, executed, confirmed } from "../utils";
 import { TxState, ErrorType } from "../enums";
 import Web3 from "web3";
 import CsvPanel from "./CsvPanel.vue";
@@ -186,7 +186,7 @@ export default {
       transactionList: [],
       latestTransactionInfo: {
         hash: null,
-        hashes: null,
+        hashesForEachTransfer: null,
         csv: null,
         selectedToken: null,
         tokenAddress: null,
@@ -202,12 +202,13 @@ export default {
       },
 
       txStateDialogVisible: false,
-      compatibleDiaglogVisible: false,
+      directSendingDiaglogVisible: false,
 
       tmp_cfx: null,
       tmp_keystore: null,
       tmp_password: "",
-      tmp_account: null
+      tmp_account: null,
+      tmp_fail_index: -1
     };
   },
   computed: {
@@ -363,7 +364,7 @@ export default {
     });
   },
   methods: {
-    handleSk(file) {
+    handleKeystore(file) {
       this.tmp_conflux = null
       this.processSk(file)
       return false
@@ -391,7 +392,7 @@ export default {
         this.tmp_keystore = sk_v3
       } catch (err) {
         // console.log(err)
-        err._type = ErrorType.CompatibleDialogError
+        err._type = ErrorType.DirectSendingDialogError
         this.processError(err)
         return 
       }
@@ -403,12 +404,13 @@ export default {
         this.transactionList = [];
       }
     },
-    notifyTxState() {
+    notifyTxState(message = null) {
       this.$notify({
         title: this.txState,
         type: this.stateType,
         offset: 60,
         duration: 6000,
+        message
       });
     },
     async authorize() {
@@ -569,10 +571,140 @@ export default {
         this.processError(err);
       }
     },
-    async transferInCompatibleMode() {
-      this.compatibleDiaglogVisible = true
+    async transferInDirectSendingMode() {
+      this.directSendingDiaglogVisible = true
     },
-    async doTransferInCompatibleMode() {
+    async doBatchWithMaxLimit(tmp_contract, start=0, max=2000) {
+      // console.log("do batch")
+      let requests = []
+      const epochNumber = await this.tmp_conflux.getEpochNumber("latest_state")
+      const initNonce = await this.tmp_conflux.getNextNonce(this.tmp_account.address)
+      // console.log(epochNumber, initNonce)
+      
+      for (let i = 0; start + i < this.csv.tos.length && i < max; i+=1){
+        try {
+          let tx
+          if (this.isNativeToken) {
+            tx = new this.sdk.Transaction({
+              from: this.tmp_account.address,
+              to: this.csv.tos[start+i],
+              value: this.fromCfxToDripWithDecimals(this.csv.vals[start+i]),
+              gas: 21000,
+              gasPrice: 100,
+              epochHeight: epochNumber,
+              chainId: parseInt(this.chainId),
+              nonce: preciseSum([initNonce, i]),
+              storageLimit: 0,
+              data: null,
+            })
+            
+          } else {
+            // construct data field
+            tx = tmp_contract.send(
+              this.csv.tos[start+i],
+              this.fromCfxToDripWithDecimals(this.csv.vals[start+i]),
+              ""
+            )
+            // console.log(tx)
+            const estimate = await tx.estimateGasAndCollateral({
+              from: this.tmp_account
+            })
+            // console.log(estimate)
+            tx.value = 0
+            tx.gasPrice = 100
+            tx.gas = estimate.gasLimit
+            tx.storageLimit = estimate.storageCollateralized
+            tx.epochHeight = epochNumber
+            tx.chainId = parseInt(this.chainId)
+            tx.nonce = preciseSum([initNonce, i])
+          }
+          tx.sign(this.tmp_account.privateKey, parseInt(this.chainId))
+          // console.log(tx)
+          requests.push({
+            method: "cfx_sendRawTransaction",
+            params: [tx.serialize()]
+          })
+        } catch (err) {
+
+          err.message = `Failed at estimation of ${start+i+1}th transaction: ${this.csv.vals[start+i]} ${this.selectedToken} to ${this.csv.tos[start+i]}\n` + err.message
+          this.tmp_fail_index = start+i
+          throw err
+        }     
+      }
+
+      // console.log(requests)
+      let results = await this.tmp_conflux.provider.batch(requests)
+      // console.log(results)
+      return results
+    },
+    async doTransferUsingBatch() {
+      try {
+        this.tmp_account = this.tmp_conflux.wallet.addKeystore(this.tmp_keystore, this.tmp_password)
+        // Do check
+        let tmp_balance, tmp_contract
+        if (this.isNativeToken) {
+          tmp_balance = (await this.tmp_conflux.getBalance(this.tmp_account.address)).toString()
+        } else {
+          tmp_contract = this.tmp_conflux.Contract(tokenConfig[this.selectedToken])
+          tmp_balance = (await tmp_contract.balanceOf(this.tmp_account.address)).toString()
+        }
+        let tmp_balance_cfx = this.fromDripToCfxWithDecimals(tmp_balance)
+        // console.log(tmp_balance_cfx)
+
+        // TODO: we ignore gas cost for simplicity (normally 0 gas for contracts, but trivial ones will cost gas)
+        let cost = preciseSum(this.csv.vals)
+        if (tmp_balance_cfx < cost) {
+          throw new Error("Not enough balance: ", tmp_balance_cfx, " balance in account. ", cost, "needed")
+        }
+
+        const len = this.csv.tos.length
+        this.latestTransactionInfo.from = this.tmp_account.address
+        this.latestTransactionInfo.csv = this.csv;
+        this.latestTransactionInfo.chainId = this.chainId;
+        this.latestTransactionInfo.selectedToken = this.selectedToken;
+        this.latestTransactionInfo.hashesForEachTransfer = new Array(len)
+        if (!this.isNativeToken) {
+          this.latestTransactionInfo.tokenAddress = tmp_contract.address
+        }
+        this.directSendingDiaglogVisible = false
+
+        this.txState = TxState.Pending
+
+        let results = []
+        let latestHash
+        const batchLimit = 2000
+
+        // TODO: 出错时借助nonce判断交易发送的进度
+        for (let i = 0; i < this.csv.tos.length; i += batchLimit) {
+          let tmp_results = await this.doBatchWithMaxLimit(tmp_contract, i, batchLimit)
+          // console.log(tmp_results)
+          latestHash = tmp_results[tmp_results.length - 1]
+          console.log(`latestHash: ${latestHash}`)
+          results = results.concat(tmp_results)
+          // this.latestTransactionInfo.hashesForEachTransfer = results
+          await executed(this.tmp_conflux, latestHash)
+          if (i + batchLimit < this.csv.tos.length)
+            this.notifyTxState(`${results.length} transactions have been executed`)
+        }
+
+        this.txState = TxState.Executed
+        // this.notifyTxState();
+        this.latestTransactionInfo.hashesForEachTransfer = results
+
+        await confirmed(this.tmp_conflux, latestHash)
+        this.latestTransactionInfo.confirmDate = Date.now();
+        this.fetchTransactionList()
+        this.transactionList.push(
+          JSON.parse(JSON.stringify(this.latestTransactionInfo))
+        );
+        this.txState = TxState.Confirmed
+        this.notifyTxState();
+      } catch (err) {
+        err._type = ErrorType.TransactionError
+        this.processError(err)
+      }
+    },
+    async doTransferInDirectSendingMode() {
       try {
         this.tmp_account = this.tmp_conflux.wallet.addKeystore(this.tmp_keystore, this.tmp_password)
         // Do check
@@ -596,11 +728,11 @@ export default {
         this.latestTransactionInfo.csv = this.csv;
         this.latestTransactionInfo.chainId = this.chainId;
         this.latestTransactionInfo.selectedToken = this.selectedToken;
-        this.latestTransactionInfo.hashes = new Array(len)
+        this.latestTransactionInfo.hashesForEachTransfer = new Array(len)
         if (!this.isNativeToken) {
           this.latestTransactionInfo.tokenAddress = tmp_contract.address
         }
-        this.compatibleDiaglogVisible = false
+        this.directSendingDiaglogVisible = false
 
 
         this.txState = TxState.Pending
@@ -621,24 +753,43 @@ export default {
                 this.fromCfxToDripWithDecimals(this.csv.vals[i]),
                 ""
               )
+              console.log(tx)
               const estimate = await tx.estimateGasAndCollateral({
                 from: this.tmp_account
               })
-              latest_tx = tx.sendTransaction({
-                from: this.tmp_account,
-                value: 0,
-                gasPrice: 100,
-                gas: estimate.gasLimit
-              })
+              const epochNumber = await this.tmp_conflux.getEpochNumber("latest_state")
+              console.log(estimate)
+              tx.value = 0
+              tx.gasPrice = 100
+              tx.gas = estimate.gasLimit
+              tx.nonce = await this.tmp_conflux.getNextNonce(this.tmp_account.address)
+              tx.storageLimit = estimate.storageCollateralized
+              tx.epochHeight = epochNumber
+              tx.chainId = parseInt(this.chainId)
+              console.log(tx)
+              tx.sign(this.tmp_account.privateKey, parseInt(this.chainId))
+              console.log(tx)
+              window.raw = tx.serialize()
+              console.log(tx.serialize())
+              window.tmp_conflux = this.tmp_conflux
+              return
+              // latest_tx = tx.sendTransaction({
+              //   from: this.tmp_account,
+              //   value: 0,
+              //   gasPrice: 100,
+              //   gas: estimate.gasLimit
+              // })
+              
             }
 
-            let receipt =  await latest_tx.executed({timeout: 60*1000})
-            this.$set(this.latestTransactionInfo.hashes, i, receipt.transactionHash)
+            let receipt =  await latest_tx.executed({timeout: 10*1000})
+            this.$set(this.latestTransactionInfo.hashesForEachTransfer, i, receipt.transactionHash)
           } catch (err) {
             err.message = `Failed at ${i+1}th transaction: ${this.csv.vals[i]} ${this.selectedToken} to ${this.csv.tos[i]}\n` + err.message
             throw err
           }     
         }
+        await latest_tx.executed()
         this.txState = TxState.Executed
         this.notifyTxState();
         await latest_tx.confirmed()
@@ -694,7 +845,7 @@ export default {
     resetLatestTransactionInfo() {
       this.latestTransactionInfo = {
         hash: null,
-        hashes: null,
+        hashesForEachTransfer: null,
         csv: null,
         selectedToken: null,
         tokenAddress: null,

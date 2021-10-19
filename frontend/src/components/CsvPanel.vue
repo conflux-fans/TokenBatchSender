@@ -96,15 +96,15 @@
       </el-col>
 
       <el-col :offset=2 :span=3>
-        <el-tooltip :effect="effect" :content="disabledTooltipCompatible" placement="right" :disabled="Boolean(selectedToken)">
+        <el-tooltip :effect="effect" :content="disabledTooltipDirectSending" placement="right" :disabled="Boolean(selectedToken)">
           <div>
             <el-button
               size="medium"
               type="danger"
               v-if="fileUploaded"
-              @click="$emit('transfer-in-compatible-mode')"
+              @click="$emit('transfer-in-direct-sending-mode')"
               :disabled="!isFreeState || !selectedToken || isProcessing"
-              >{{$t('message.command.sendInCompatibleMode')}}</el-button
+              >{{$t('message.command.sendInDirectSendingMode')}}</el-button
             >
           </div>
         </el-tooltip>
@@ -169,6 +169,7 @@ export default {
           }
         }
       } catch (err) {
+        this.isProcessing = false
         err._type = ErrorType.CsvError;
         this.$emit('process-error', err);
       }
@@ -191,7 +192,7 @@ export default {
       }
       return null
     },
-    disabledTooltipCompatible() {
+    disabledTooltipDirectSending() {
 
       if(!this.selectedToken) {
         return this.$t("message.warning.tokenWarning")

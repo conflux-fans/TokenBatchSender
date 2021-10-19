@@ -42,7 +42,7 @@
           width="100"
         ></el-table-column>
         <el-table-column
-          v-if="transactionInfo.hashes"
+          v-if="transactionInfo.hashesForEachTransfer"
           fixed
           prop="hash"
           label="hash"
@@ -64,13 +64,13 @@ export default {
   },
   computed: {
     // a normal transaction has hash field,
-    // while in compatible mode, transaction is actually composed of several transactions,
-    // which has hashes field
+    // while in direct sending mode, transaction is actually composed of several transactions,
+    // which has hashesForEachTransfer field
     hash() {
       return this.transactionInfo.hash
     },
-    // hashes() {
-    //   return this.transactionInfo.hashes
+    // hashesForEachTransfer() {
+    //   return this.transactionInfo.hashesForEachTransfer
     // },
     csv() {
       return this.transactionInfo.csv
@@ -98,16 +98,11 @@ export default {
       if (this.csv == null) return null
       const tmp = [];
       for (let i = 0; i < this.csv.tos.length; i++) {
-        // tmp.push({
-        //   address: this.csv.tos[i],
-        //   value: this.csv.vals[i],
-        //   hash: null
-        // });
-        if (this.transactionInfo.hashes) {
+        if (this.transactionInfo.hashesForEachTransfer && i < this.transactionInfo.hashesForEachTransfer.length) {
           tmp.push({
             address: this.csv.tos[i],
             value: this.csv.vals[i],
-            hash: this.transactionInfo.hashes[i]
+            hash: this.transactionInfo.hashesForEachTransfer[i]
           });
         } else {
           tmp.push({
