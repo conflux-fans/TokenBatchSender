@@ -42,7 +42,7 @@
           width="100"
         ></el-table-column>
         <el-table-column
-          v-if="transactionInfo.hashesForEachTransfer"
+          v-if="transactionInfo.hashesForDirectMode"
           fixed
           prop="hash"
           label="hash"
@@ -65,12 +65,12 @@ export default {
   computed: {
     // a normal transaction has hash field,
     // while in direct sending mode, transaction is actually composed of several transactions,
-    // which has hashesForEachTransfer field
+    // which has hashesForDirectMode field
     hash() {
       return this.transactionInfo.hash
     },
-    // hashesForEachTransfer() {
-    //   return this.transactionInfo.hashesForEachTransfer
+    // hashesForDirectMode() {
+    //   return this.transactionInfo.hashesForDirectMode
     // },
     csv() {
       return this.transactionInfo.csv
@@ -98,11 +98,11 @@ export default {
       if (this.csv == null) return null
       const tmp = [];
       for (let i = 0; i < this.csv.tos.length; i++) {
-        if (this.transactionInfo.hashesForEachTransfer && i < this.transactionInfo.hashesForEachTransfer.length) {
+        if (this.transactionInfo.hashesForDirectMode && i < this.transactionInfo.hashesForDirectMode.length) {
           tmp.push({
             address: this.csv.tos[i],
             value: this.csv.vals[i],
-            hash: this.transactionInfo.hashesForEachTransfer[i]
+            hash: this.transactionInfo.hashesForDirectMode[i]
           });
         } else {
           tmp.push({

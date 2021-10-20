@@ -68,7 +68,7 @@ const messages = {
           checkExample: 'Check example',
         },
         directSendingMode: {
-          modeOnTooltip: "Direct sending mode is on. The atomicity of sending is NOT preserved and will cost MUCH MORE time",
+          modeOnTooltip: "Direct sending mode is on. Direct sending mode requires uploading secret keystore file from disk, please change your secret key to ensure assets safety. In direct sending mode, each sub-transfer has its own hash, and there is no limit for transfer amount",
           modeOffTooltip: "Direct sending mode is off",
           password: "Password here",
           warning: "WARNING for direct sending mode",
@@ -149,7 +149,7 @@ const messages = {
             checkExample: '查看示例',
           },
           directSendingMode: {
-            modeOnTooltip: "直接转账模式已启用。该模式下批量转账的原子性无法保证，且交易将更耗时",
+            modeOnTooltip: "直接转账模式已启用。该模式需要上传私钥，请每次使用该模式时更换新的私钥，保证资金安全；该模式下每笔转账将拥有独立的交易hash，且批量转账记录数量不限",
             modeOffTooltip: "直接转账模式已关闭",
             password: "请输入口令",
             warning: "直接转账模式须知",

@@ -186,7 +186,7 @@ export default {
       transactionList: [],
       latestTransactionInfo: {
         hash: null,
-        hashesForEachTransfer: null,
+        hashesForDirectMode: null,
         csv: null,
         selectedToken: null,
         tokenAddress: null,
@@ -366,13 +366,12 @@ export default {
   methods: {
     handleKeystore(file) {
       this.tmp_conflux = null
-      this.processSk(file)
+      this.processKeystore(file)
       return false
     },
-    async processSk(file) {
+    async processKeystore(file) {
       try {
         const sk_v3 = JSON.parse(await file.text())
-        // TODO i18n and reminders
         switch(this.chainId) {
           case "0x1":
             this.tmp_conflux = new this.sdk.Conflux({
@@ -653,16 +652,18 @@ export default {
 
         // TODO: we ignore gas cost for simplicity (normally 0 gas for contracts, but trivial ones will cost gas)
         let cost = preciseSum(this.csv.vals)
+        // let reqs, gas, storage = this.constructAndGetDetails()
         if (tmp_balance_cfx < cost) {
           throw new Error("Not enough balance: ", tmp_balance_cfx, " balance in account. ", cost, "needed")
         }
+
 
         const len = this.csv.tos.length
         this.latestTransactionInfo.from = this.tmp_account.address
         this.latestTransactionInfo.csv = this.csv;
         this.latestTransactionInfo.chainId = this.chainId;
         this.latestTransactionInfo.selectedToken = this.selectedToken;
-        this.latestTransactionInfo.hashesForEachTransfer = new Array(len)
+        this.latestTransactionInfo.hashesForDirectMode = new Array(len)
         if (!this.isNativeToken) {
           this.latestTransactionInfo.tokenAddress = tmp_contract.address
         }
@@ -681,7 +682,7 @@ export default {
           latestHash = tmp_results[tmp_results.length - 1]
           console.log(`latestHash: ${latestHash}`)
           results = results.concat(tmp_results)
-          // this.latestTransactionInfo.hashesForEachTransfer = results
+          // this.latestTransactionInfo.hashesForDirectMode = results
           await executed(this.tmp_conflux, latestHash)
           if (i + batchLimit < this.csv.tos.length)
             this.notifyTxState(`${results.length} transactions have been executed`)
@@ -689,7 +690,7 @@ export default {
 
         this.txState = TxState.Executed
         // this.notifyTxState();
-        this.latestTransactionInfo.hashesForEachTransfer = results
+        this.latestTransactionInfo.hashesForDirectMode = results
 
         await confirmed(this.tmp_conflux, latestHash)
         this.latestTransactionInfo.confirmDate = Date.now();
@@ -728,7 +729,7 @@ export default {
         this.latestTransactionInfo.csv = this.csv;
         this.latestTransactionInfo.chainId = this.chainId;
         this.latestTransactionInfo.selectedToken = this.selectedToken;
-        this.latestTransactionInfo.hashesForEachTransfer = new Array(len)
+        this.latestTransactionInfo.hashesForDirectMode = new Array(len)
         if (!this.isNativeToken) {
           this.latestTransactionInfo.tokenAddress = tmp_contract.address
         }
@@ -783,7 +784,7 @@ export default {
             }
 
             let receipt =  await latest_tx.executed({timeout: 10*1000})
-            this.$set(this.latestTransactionInfo.hashesForEachTransfer, i, receipt.transactionHash)
+            this.$set(this.latestTransactionInfo.hashesForDirectMode, i, receipt.transactionHash)
           } catch (err) {
             err.message = `Failed at ${i+1}th transaction: ${this.csv.vals[i]} ${this.selectedToken} to ${this.csv.tos[i]}\n` + err.message
             throw err
@@ -845,7 +846,7 @@ export default {
     resetLatestTransactionInfo() {
       this.latestTransactionInfo = {
         hash: null,
-        hashesForEachTransfer: null,
+        hashesForDirectMode: null,
         csv: null,
         selectedToken: null,
         tokenAddress: null,
