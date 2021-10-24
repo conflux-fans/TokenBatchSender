@@ -35,7 +35,9 @@ const messages = {
         resetCsv: 'RESET CSV',
         send: 'SEND',
         sendInDirectSendingMode: 'SEND in Compatible Mode',
-        uploadSecretKey: 'SELECT SECRET KEYSTORE FILE'
+        uploadSecretKey: 'SELECT SECRET KEYSTORE FILE',
+        resumePendingRequestsInDirectSendingMode: "RESUME SENDING",
+        doResume: "Do Resume"
       },
       error: {
         networkError: 'Network Error',
@@ -76,6 +78,11 @@ const messages = {
           balance: "Making sure you have enough CFX for gas: we will check your balance is greater than the sum of transfer values, but gas cost will be ignore.",
           secret: "Secret key file is required, otherwise you have to approve every transaction by using Conflux Portal",
           error: "In direct sending mode, every 2000 transactions will be batched and sent. If any error occurs for current batch, the rest of the transactions will not be sent"
+        },
+        doResume: {
+          warning: "WARNING for resume",
+          condition: "直接发送模式下产生错误时，希望从断点续发时可以选择使用续发模式",
+          forbids: "使用续发功能前请不要进行其他交易"
         }
       }
     },
@@ -116,7 +123,9 @@ const messages = {
           resetCsv: '重置CSV文件',
           send: '批量转账',
           sendInDirectSendingMode: '以直接转账模式进行批量转账',
-          uploadSecretKey: '上传私钥文件'
+          uploadSecretKey: '上传私钥文件',
+          resumePendingRequestsInDirectSendingMode: "续发",
+          doResume: "续发"
         },
         error: {
           networkError: '网络错误',
@@ -157,6 +166,11 @@ const messages = {
             balance: "转帐前将检测余额是否足够，但不会考虑gas消费，还请注意",
             secret: "直接转账模式需要您的私钥文件（否则使用Conflux Portal需要逐笔授权）",
             error: "直接转账模式下，每2000笔交易将打包发出。某次打包发送出错后，其后的交易将不会发送"
+          },
+          doResume: {
+            warning: "续发模式说明",
+            condition: "直接发送模式下产生错误时，希望从断点续发时可以选择使用续发模式",
+            forbids: "使用续发功能前请不要用您的账户进行其他交易"
           }
         },
         
