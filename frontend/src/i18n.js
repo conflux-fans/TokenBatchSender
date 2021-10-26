@@ -70,20 +70,18 @@ const messages = {
           checkExample: 'Check example',
         },
         directSendingMode: {
-          modeOnTooltip: "Direct sending mode is on. Direct sending mode requires reading secret keystore file in your disk, please change your secret key to ensure assets safety. In direct sending mode, each sub-transfer has its own hash, and there is no limit for transfer amount",
+          modeOnTooltip: "Direct sending mode is on",
           modeOffTooltip: "Direct sending mode is off",
           password: "Password here",
           warning: "WARNING for direct sending mode",
-          atomic: "In direct sending mode, transactions will be done one after another, which means there is no atomicity for the batch sending",
-          balance: "Making sure you have enough CFX for gas: we will check your balance is greater than the sum of transfer values, but gas cost will be ignore.",
+          atomic: "In direct sending mode, transactions will be done one after another",
           secret: "Secret key file is required, otherwise you have to approve every transaction by using Conflux Portal",
-          error: "In direct sending mode, every 2000 transactions will be batched and sent. If any error occurs for current batch, the rest of the transactions will not be sent"
+          error: "In direct sending mode, every 2000 transactions will be batched and sent. Sending would pause if any error occured, and sending cound resume from the break point"
         },
         doResume: {
           progress: "{last} transactions have been sent, press button to resume sending",
           warning: "WARNING for resume",
-          condition: "直接发送模式下产生错误时，希望从断点续发时可以选择使用续发模式",
-          forbids: "使用续发功能前请不要进行其他交易"
+          forbids: "Do not send any other transaction before resuming batch sending"
         }
       }
     },
@@ -159,14 +157,13 @@ const messages = {
             checkExample: '查看示例',
           },
           directSendingMode: {
-            modeOnTooltip: "直接转账模式已启用。该模式需要上传私钥，请每次使用该模式时更换新的私钥，保证资金安全；该模式下每笔转账将拥有独立的交易hash，且批量转账记录数量不限",
+            modeOnTooltip: "直接转账模式已启用",
             modeOffTooltip: "直接转账模式已关闭",
             password: "请输入口令",
             warning: "直接转账模式须知",
-            atomic: "警告：直接转账模式下交易将会逐笔进行，该模式无法保证批量转账的原子性",
-            balance: "转帐前将检测余额是否足够，但不会考虑gas消费，还请注意",
+            atomic: "警告：直接转账模式下交易将会逐笔进行",
             secret: "直接转账模式需要您的私钥文件（否则使用Conflux Portal需要逐笔授权）",
-            error: "直接转账模式下，每2000笔交易将打包发出。某次打包发送出错后，其后的交易将不会发送"
+            error: "直接转账模式下，每2000笔交易将打包发出。转账因错误中断时，可以使用续发功能从中断的地方继续转账"
           },
           doResume: {
             progress: "您已发出了 {last} 笔交易, 接下来将续发之后的交易",

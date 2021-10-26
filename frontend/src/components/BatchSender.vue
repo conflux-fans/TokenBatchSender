@@ -143,9 +143,6 @@
             {{$t('message.tooltip.directSendingMode.atomic')}}
           </li>
           <li>
-            {{$t('message.tooltip.directSendingMode.balance')}}
-          </li>
-          <li>
             {{$t('message.tooltip.directSendingMode.secret')}}
           </li>
           <li>
@@ -173,9 +170,6 @@
       <el-card>
         <el-tag type="danger">{{$t('message.tooltip.doResume.warning')}}</el-tag>
         <ul>
-          <li>
-            {{$t('message.tooltip.doResume.condition')}}
-          </li>
           <li>
             {{$t('message.tooltip.doResume.forbids')}}
           </li>
