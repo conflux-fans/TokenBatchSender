@@ -67,6 +67,7 @@
           v-bind:isFreeState="isFreeState"
           v-bind:chainId="chainId"
           v-bind:csvError="errors['csvError']"
+          v-bind:transactionError="errors['transactionError']"
           v-bind:selectedToken="selectedToken"
           v-on:process-error="processError"
           v-on:set-csv="setCsv"
@@ -78,7 +79,7 @@
         </csv-panel>
       </el-col>
     </el-row>
-    <el-row type="flex" justify="center" v-if="!isFreeState">
+    <el-row type="flex" justify="center" v-if="!isFreeState || Boolean(errors['transactionError'])">
       <el-col :span="20">
         <current-transaction-panel
           v-bind:latestTransactionInfo="latestTransactionInfo"
@@ -312,7 +313,7 @@ export default {
     stateMessage() {
       switch (this.txState) {
         case TxState.Error:
-          return TxState.Error + ":" + this.errors["transactionError"].message;
+          return TxState.Error + ":" + this.errors['transactionError'].message;
         case TxState.Executed:
           return (
             TxState.Executed +
@@ -484,6 +485,7 @@ export default {
     },
     async transfer() {
       this.resetLatestTransactionInfo();
+      this.errors[ErrorType.TransactionError] = null
       try {
         // 重新获取授权
         await this.authorize();
@@ -749,6 +751,8 @@ export default {
     },
 
     async doTransferUsingBatch() {
+      this.resetLatestTransactionInfo();
+      this.errors[ErrorType.TransactionError] = null
       try {
         this.directSendingDiaglogVisible = false
 
@@ -857,6 +861,7 @@ export default {
       }
     },
     async doResume() {
+      this.errors[ErrorType.TransactionError] = null
       try {
         this.txState = TxState.Pending
         // console.log(this.pendingRequests)
