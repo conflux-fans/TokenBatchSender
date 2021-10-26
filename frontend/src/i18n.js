@@ -70,7 +70,7 @@ const messages = {
           checkExample: 'Check example',
         },
         directSendingMode: {
-          modeOnTooltip: "Direct sending mode is on. Direct sending mode requires uploading secret keystore file from disk, please change your secret key to ensure assets safety. In direct sending mode, each sub-transfer has its own hash, and there is no limit for transfer amount",
+          modeOnTooltip: "Direct sending mode is on. Direct sending mode requires reading secret keystore file in your disk, please change your secret key to ensure assets safety. In direct sending mode, each sub-transfer has its own hash, and there is no limit for transfer amount",
           modeOffTooltip: "Direct sending mode is off",
           password: "Password here",
           warning: "WARNING for direct sending mode",
@@ -80,6 +80,7 @@ const messages = {
           error: "In direct sending mode, every 2000 transactions will be batched and sent. If any error occurs for current batch, the rest of the transactions will not be sent"
         },
         doResume: {
+          progress: "{last} transactions have been sent, press button to resume sending",
           warning: "WARNING for resume",
           condition: "直接发送模式下产生错误时，希望从断点续发时可以选择使用续发模式",
           forbids: "使用续发功能前请不要进行其他交易"
@@ -123,7 +124,7 @@ const messages = {
           resetCsv: '重置CSV文件',
           send: '批量转账',
           sendInDirectSendingMode: '以直接转账模式进行批量转账',
-          uploadSecretKey: '上传私钥文件',
+          uploadSecretKey: '选择私钥文件',
           resumePendingRequestsInDirectSendingMode: "续发",
           doResume: "续发"
         },
@@ -168,6 +169,7 @@ const messages = {
             error: "直接转账模式下，每2000笔交易将打包发出。某次打包发送出错后，其后的交易将不会发送"
           },
           doResume: {
+            progress: "您已发出了 {last} 笔交易, 接下来将续发之后的交易",
             warning: "续发模式说明",
             condition: "直接发送模式下产生错误时，希望从断点续发时可以选择使用续发模式",
             forbids: "使用续发功能前请不要用您的账户进行其他交易"

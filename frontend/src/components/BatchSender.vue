@@ -160,6 +160,7 @@
       width="45%"
     >
       <div>
+        <el-row> {{ $t('message.tooltip.doResume.progress', { 'last': pendingResults.length }) }} </el-row>
         <el-row>
           <el-col :span=12>
             <el-button
@@ -661,6 +662,7 @@ export default {
 
     // the estimate gas cost will be encoded in serialized transactions
     // the returned gas cost is viewed
+    // TODO: use batch to estimate
     async constructReqsAndGetGasCost(tmpContract) {
       let requests = []
       const epochNumber = await this.tmpConflux.getEpochNumber("latest_state")
@@ -745,15 +747,19 @@ export default {
       if (whitelisted && gasSponsorBalance > gasCostSum*BigInt(GlobalDefaultGasPrice)) {
         userGasCost = 0
       }
-      // 1 byte for 2e-10 CFX 
+      // 1024 byte => 1 CFX 
       if (whitelisted && storageSponsorBalance > storageSum*BigInt(10**18)/BigInt(1024)) {
         userStorageCost = 0
       }
-      return { requests, initNonce, userGasCost, userStorageCost }
+      return { requests, userGasCost, userStorageCost }
     },
 
     async doTransferUsingBatch() {
       try {
+        this.directSendingDiaglogVisible = false
+
+        this.txState = TxState.Preparing
+
         switch(this.chainId) {
           case "0x1":
             this.tmpConflux = new this.sdk.Conflux({
@@ -783,9 +789,6 @@ export default {
         // let tmpBalanceCfx = this.fromDripToCfxWithDecimals(tmpBalance)
         // console.log(tmpBalanceCfx)
 
-        this.directSendingDiaglogVisible = false
-
-        this.txState = TxState.Preparing
 
         const {requests, userGasCost, userStorageCost} = await this.constructReqsAndGetGasCost(tmpContract)
         
@@ -797,7 +800,7 @@ export default {
 
         // check token balance, gas cost and collateral 
         if (this.isNativeToken) {
-          if (tmpCfxBalance + userGasCost * BigInt(GlobalDefaultGasPrice) < transferInDrip) {
+          if (tmpCfxBalance < transferInDrip + userGasCost * BigInt(GlobalDefaultGasPrice)) {
             throw new Error("Not enough balance: ", tmpCfxBalance, " balance in account. ", transferInDrip, "needed (including gas cost)")
           }
         } else {
@@ -832,13 +835,8 @@ export default {
           // console.log(tmpResults)
           latestHash = tmpResults[tmpResults.length - 1]
           // console.log(`latestHash: ${latestHash}`)
-          // supposed to be an io error
-          if (latestHash instanceof Error)
-            throw latestHash
+          
           this.pendingResults = this.pendingResults.concat(tmpResults)
-          // if (DEBUG) {
-          //   throw new Error("Manually throw an error in DEBUG mode")
-          // }
 
           await executed(this.tmpConflux, latestHash)
 
@@ -866,12 +864,17 @@ export default {
     },
     async doResume() {
       try {
+        this.txState = TxState.Pending
         // console.log(this.pendingRequests)
         if (this.pendingRequests == null)
           throw new Error("No pending requests found")
         this.resumeDialogVisible = false
         // nonce for latest_state
         let latestHash
+
+        if (this.pendingResults.length > 0) {
+          latestHash = this.pendingResults[this.pendingResults.length - 1]
+        }
 
         // 根据pendingResults的长度续发
         // reuse requests
@@ -880,10 +883,7 @@ export default {
           let tmpResults = await this.tmpConflux.provider.batch(this.pendingRequests.slice(i, i + BATCHLIMIT))
           // console.log(tmpResults)
           latestHash = tmpResults[tmpResults.length - 1]
-          // console.log(`latestHash: ${latestHash}`)
-          // supposed to be an io error
-          if (latestHash instanceof Error)
-            throw latestHash
+
           this.pendingResults = this.pendingResults.concat(tmpResults)
 
           await executed(this.tmpConflux, latestHash)
