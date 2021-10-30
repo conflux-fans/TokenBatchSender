@@ -85,6 +85,8 @@
 <script>
 import { getScanUrl } from './utils'
 import BatchSender from './components/BatchSender.vue';
+import { default as sdk } from 'js-conflux-sdk'
+
 
 export default {
   components: {
@@ -171,7 +173,7 @@ export default {
         this.$store.dispatch('init', {
           conflux: window.conflux,
           confluxJS: window.confluxJS,
-          sdk: window.ConfluxJSSDK
+          sdk,
         })
       } else {
         this.installationDialogVisible = true
