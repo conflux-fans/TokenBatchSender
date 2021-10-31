@@ -2,6 +2,7 @@ import hexStringToArrayBuffer from './hexStringToArrayBuffer'
 import getScanUrl from './getScanUrl'
 import { moveDecimal, preciseSum } from './precision'
 import { executed, confirmed } from './subscriptionHelper'
+import { BatchRequesterWrapper } from './batcherHelper'
 
 export {
     getScanUrl,
@@ -9,5 +10,6 @@ export {
     moveDecimal,
     preciseSum,
     executed,
-    confirmed
+    confirmed,
+    BatchRequesterWrapper
 }

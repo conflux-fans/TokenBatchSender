@@ -182,12 +182,15 @@
 
 <script>
 import { tokenConfig, routingContractConfig, sponsorContractConfig } from "../contracts-config";
-import { hexStringToArrayBuffer, preciseSum, moveDecimal, executed, confirmed } from "../utils";
+import { hexStringToArrayBuffer, preciseSum, moveDecimal, executed, confirmed, BatchRequesterWrapper} from "../utils";
 import { TxState, ErrorType } from "../enums";
 import Web3 from "web3";
 import CsvPanel from "./CsvPanel.vue";
 import HistoryTransactionPanel from "./HistoryTransactionPanel.vue";
 import CurrentTransactionPanel from "./CurrentTransactionPanel.vue";
+import PromiseWorker from "promise-worker"
+// import { default as sdk } from 'js-conflux-sdk'
+import Worker from '../worker/requests.worker'
 
 const BigInt = window.BigInt
 const GlobalDefaultGasPrice = 100
@@ -596,8 +599,15 @@ export default {
     // the estimate gas cost will be encoded in serialized transactions
     // the returned gas cost is viewed
     // TODO: use batch to estimate
+    // Worker is required here 
     async constructReqsAndGetGasCost(tmpContract) {
       let requests = []
+
+      var worker = new Worker();
+      var promiseWorker = new PromiseWorker(worker);
+
+      // promiseWorker.postMessage('ping').then(console.log).catch(console.error);
+
       const epochNumber = await this.tmpConflux.getEpochNumber("latest_state")
       const initNonce = await this.tmpConflux.getNextNonce(this.tmpAccount.address)
       // console.log(epochNumber, initNonce)
@@ -620,6 +630,36 @@ export default {
       }
 
       // firstly we estimate all gas
+      // work flow: 
+      // 1. if not native token: construct estimate requests (using worker and batch), return estimate sum
+      // 2. if not native token: do estimate (using batch)
+      // 3. construct raw transaction requests (using worker)
+      // 4. return 
+      const estimateBatcher = this.tmpConflux.BatchRequest()
+
+      for (let i = 0; i < this.csv.tos.length; i+=1){
+        if (!this.isNativeToken) {
+          let tx
+
+          tx = tmpContract.send(
+            this.csv.tos[i],
+            this.fromCfxToDripWithDecimals(this.csv.vals[i]),
+            "0x0"
+          )
+          tx.from = this.tmpAccount
+          // console.log(tx)
+          estimateBatcher.add(this.tmpConflux.cfx.estimateGasAndCollateral.request(tx))
+        }
+      }
+      let estimateResults
+      
+      if (!this.isNativeToken) {
+        const wrapper = new BatchRequesterWrapper(estimateBatcher)
+        estimateResults = await wrapper.execute()
+        // console.log(estimateResults)
+      }
+
+
       for (let i = 0; i < this.csv.tos.length; i+=1){
         try {
           let tx
@@ -642,12 +682,10 @@ export default {
             tx = tmpContract.send(
               this.csv.tos[i],
               this.fromCfxToDripWithDecimals(this.csv.vals[i]),
-              ""
+              "0x0"
             )
             // console.log(tx)
-            const estimate = await tx.estimateGasAndCollateral({
-              from: this.tmpAccount
-            })
+            const estimate = estimateResults[i]
             // console.log(estimate)
             tx.value = 0
             tx.gasPrice = GlobalDefaultGasPrice
@@ -660,11 +698,18 @@ export default {
             gasCostSum += BigInt(estimate.gasLimit)
             storageSum += BigInt(estimate.storageCollateralized)
           }
-          tx.sign(this.tmpAccount.privateKey, parseInt(this.chainId))
-          // console.log(tx)
+          const serializedTx = await promiseWorker.postMessage({
+            type: "sign",
+            data: {
+              txOptions: tx,
+              privateKey: this.tmpAccount.privateKey,
+              chainId: parseInt(this.chainId)
+            }
+          })
+
           requests.push({
             method: "cfx_sendRawTransaction",
-            params: [tx.serialize()]
+            params: [serializedTx]
           })
         } catch (err) {
 
@@ -721,9 +766,21 @@ export default {
           tmpContract = this.tmpConflux.Contract(tokenConfig[this.selectedToken])
           tmpTokenBalance = BigInt((await tmpContract.balanceOf(this.tmpAccount.address)).toString())
         }
-        // let tmpBalanceCfx = this.fromDripToCfxWithDecimals(tmpBalance)
-        // console.log(tmpBalanceCfx)
 
+        let transferInDrip = BigInt(this.fromCfxToDripWithDecimals(preciseSum(this.csv.vals)))
+
+        // firstly only check token balance (otherwise estimation will fail)
+        if (this.isNativeToken) {
+          if (tmpCfxBalance < transferInDrip) {
+            throw new Error(`Not enough balance: ${tmpCfxBalance} balance in account. ${transferInDrip} needed`)
+          }
+        } else {
+          if (tmpTokenBalance < transferInDrip) {
+            throw new Error(`Not enough token balance: ${tmpTokenBalance} balance in account. ${transferInDrip} needed`)
+          }
+        }
+        // console.log(this.tmpAccount)
+        // console.log(tmpTokenBalance, transferInDrip)
 
         const {requests, userGasCost, userStorageCost} = await this.constructReqsAndGetGasCost(tmpContract)
         
@@ -731,16 +788,14 @@ export default {
         // we need to resume progress using info below
         this.pendingRequests = requests
 
-        let transferInDrip = BigInt(this.fromCfxToDripWithDecimals(preciseSum(this.csv.vals)))
-
         // check token balance, gas cost and collateral 
         if (this.isNativeToken) {
           if (tmpCfxBalance < transferInDrip + userGasCost * BigInt(GlobalDefaultGasPrice)) {
-            throw new Error("Not enough balance: ", tmpCfxBalance, " balance in account. ", transferInDrip, "needed (including gas cost)")
+            throw new Error(`Not enough balance: ${tmpCfxBalance} balance in account. ${transferInDrip} needed (including gas cost)`)
           }
         } else {
           if (tmpTokenBalance < transferInDrip) {
-            throw new Error("Not enough token balance: ", tmpCfxBalance, " balance in account. ", transferInDrip, "needed")
+            throw new Error(`Not enough token balance: ${tmpTokenBalance} balance in account. ${transferInDrip}needed`)
           }
           if (tmpCfxBalance < userGasCost * BigInt(GlobalDefaultGasPrice) + userStorageCost*BigInt(10**18)/BigInt(2**10)) {
             throw new Error(`Not enough cfx to cover gas and collateral cost`)
