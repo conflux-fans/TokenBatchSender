@@ -595,71 +595,56 @@ export default {
     async transferInDirectSendingMode() {
       this.directSendingDiaglogVisible = true
     },
-
-    // the estimate gas cost will be encoded in serialized transactions
-    // the returned gas cost is viewed
-    // TODO: use batch to estimate
-    // Worker is required here 
-    async constructReqsAndGetGasCost(tmpContract) {
-      let requests = []
-
-      var worker = new Worker();
-      var promiseWorker = new PromiseWorker(worker);
-
-      // promiseWorker.postMessage('ping').then(console.log).catch(console.error);
-
-      const epochNumber = await this.tmpConflux.getEpochNumber("latest_state")
-      const initNonce = await this.tmpConflux.getNextNonce(this.tmpAccount.address)
-      // console.log(epochNumber, initNonce)
-      
-      let gasCostSum = BigInt(0)
-      let storageSum = BigInt(0)
-      let whitelisted = false
-      let gasSponsorBalance = BigInt(0)
-      let storageSponsorBalance = BigInt(0)
-
-      // check if the account is sponsored
-      const sponsorContract = this.confluxJS.Contract(sponsorContractConfig[parseInt(this.chainId)])
-      whitelisted = tmpContract ? await sponsorContract.isWhitelisted(tmpContract.address, this.tmpAccount.address) : false
-
-      console.log(`account is whitelisted?: ${whitelisted}`)
-
-      if (whitelisted) {
-        gasSponsorBalance = BigInt((await sponsorContract.getSponsoredBalanceForGas(sponsorContract.address)).toString())
-        storageSponsorBalance = BigInt((await sponsorContract.getSponsoredBalanceForCollateral(sponsorContract.address)).toString())
-      }
-
-      // firstly we estimate all gas
-      // work flow: 
-      // 1. if not native token: construct estimate requests (using worker and batch), return estimate sum
-      // 2. if not native token: do estimate (using batch)
-      // 3. construct raw transaction requests (using worker)
-      // 4. return 
+    /**
+     * 用batch进行estimate
+     */
+    async doBatchEstimate(tmpContract) {
+      let worker = new Worker();
+      let promiseWorker = new PromiseWorker(worker);
       const estimateBatcher = this.tmpConflux.BatchRequest()
-
       for (let i = 0; i < this.csv.tos.length; i+=1){
         if (!this.isNativeToken) {
-          let tx
+          // let tx
 
-          tx = tmpContract.send(
+          // 计算drip不一定是这段计算中最占用资源的部分
+          // 但是我们只需要分担一部分计算任务给worker就能避免页面卡死
+          const drip = await promiseWorker.postMessage({
+            type: "getDrip",
+            data: {
+              cfx: this.csv.vals[i],
+              decimals: this.decimals
+            }
+          })
+          const tx = tmpContract.send(
             this.csv.tos[i],
-            this.fromCfxToDripWithDecimals(this.csv.vals[i]),
+            drip,
             "0x0"
           )
+
           tx.from = this.tmpAccount
-          // console.log(tx)
           estimateBatcher.add(this.tmpConflux.cfx.estimateGasAndCollateral.request(tx))
         }
       }
-      let estimateResults
+      // 进行 batch estimate
+      const wrapper = new BatchRequesterWrapper(estimateBatcher)
+      let estimateResults = await wrapper.execute()
+      return estimateResults
+    },
+    /**
+     * 构造raw交易 并返回gas与storage cost
+     * 需要使用之前estimate的结果
+     */
+    async constructReqsAndGetGasCostUsingEstimateResults(tmpContract, estimateResults) {
+      let gasCostSum = BigInt(0)
+      let storageSum = BigInt(0)
+      let requests = []
+
+      let worker = new Worker();
+      let promiseWorker = new PromiseWorker(worker);
+
+      const epochNumber = await this.tmpConflux.getEpochNumber("latest_state")
+      const initNonce = await this.tmpConflux.getNextNonce(this.tmpAccount.address)
       
-      if (!this.isNativeToken) {
-        const wrapper = new BatchRequesterWrapper(estimateBatcher)
-        estimateResults = await wrapper.execute()
-        // console.log(estimateResults)
-      }
-
-
       for (let i = 0; i < this.csv.tos.length; i+=1){
         try {
           let tx
@@ -717,6 +702,53 @@ export default {
           throw err
         }     
       }
+      return { requests, gasCostSum, storageSum }
+    },
+    /**
+     * 构造所有待发交易
+     * workflow：
+     * 1. 确认合约代付状态
+     * 2. 使用 batch 进行估算合约的gas cost
+     * 3. 使用 estimate 的结果构造所有请求，并签名
+     * 4. 处理 gas 和 stoarage 的结果，判断用户需要支付的数目
+     * returns
+     * reqs 待发交易数组
+     * userGasCost 用户需要支付的 gas 数，有代付时为0
+     * userStorageCost 对应的storage limit， 有代付时为0
+     */
+    async constructReqsAndGetGasCost(tmpContract) {
+
+      // 1. 确认合约代付状态
+
+      let whitelisted = false
+      let gasSponsorBalance = BigInt(0)
+      let storageSponsorBalance = BigInt(0)
+
+      // check if the account is sponsored
+      const sponsorContract = this.confluxJS.Contract(sponsorContractConfig[parseInt(this.chainId)])
+      whitelisted = tmpContract ? await sponsorContract.isWhitelisted(tmpContract.address, this.tmpAccount.address) : false
+
+      console.log(`account is whitelisted?: ${whitelisted}`)
+
+      // 记录合约代付参数
+      if (whitelisted) {
+        gasSponsorBalance = BigInt((await sponsorContract.getSponsoredBalanceForGas(sponsorContract.address)).toString())
+        storageSponsorBalance = BigInt((await sponsorContract.getSponsoredBalanceForCollateral(sponsorContract.address)).toString())
+      }
+
+      // 2. estimate 需要构造rpc请求 这里我们使用 batch 进行估算
+      //    构造所有的estimate请求
+      let estimateResults
+      if (!this.isNativeToken) {
+        // const wrapper = new BatchRequesterWrapper(estimateBatcher)
+        estimateResults = await this.doBatchEstimate(tmpContract)
+      }
+
+      // 3. 使用estimate的结果 构造所有的请求
+      //    签名用worker进行
+      let { requests, gasCostSum, storageSum } = await this.constructReqsAndGetGasCostUsingEstimateResults(tmpContract, estimateResults)
+      
+      // 4. 处理 gas 和 stoarage
       // 当赞助余额不足以 cover 交易消耗时，我们认为赞助将不会被使用（虽然实际情况是消耗一部分赞助 另一部分由原本的账户承担）
       // 这样的处理接近实际情况并且能够回避一些危险的处理
       let userGasCost = gasCostSum, userStorageCost = storageSum
@@ -731,11 +763,20 @@ export default {
       }
       return { requests, userGasCost, userStorageCost }
     },
-
+    /**
+     * 直接转账模式
+     * workflow
+     * 1. 初始化相应参数
+     * 2. 初步检查余额
+     * 3. 构造交易
+     * 4. 包含 gas 与 storage 检查余额
+     * 5. 进行发送
+     */
     async doTransferUsingBatch() {
       this.resetLatestTransactionInfo();
       this.errors[ErrorType.TransactionError] = null
       try {
+        // 1. 初始化相应参数
         this.directSendingDiaglogVisible = false
 
         this.txState = TxState.Preparing
@@ -759,7 +800,7 @@ export default {
 
         this.tmpAccount = this.tmpConflux.wallet.addKeystore(this.tmpKeystore, this.tmpPassword)
 
-        // =========== Do check ============
+        // 2. 仅进行转账balance的检查
         let tmpCfxBalance = null, tmpContract = null, tmpTokenBalance = null
         tmpCfxBalance = BigInt((await this.tmpConflux.getBalance(this.tmpAccount.address)).toString())
         if (!this.isNativeToken) {
@@ -779,15 +820,14 @@ export default {
             throw new Error(`Not enough token balance: ${tmpTokenBalance} balance in account. ${transferInDrip} needed`)
           }
         }
-        // console.log(this.tmpAccount)
-        // console.log(tmpTokenBalance, transferInDrip)
-
+        // 3. 初步检查完毕，进行构造交易
         const {requests, userGasCost, userStorageCost} = await this.constructReqsAndGetGasCost(tmpContract)
         
-
+        // 4. 进行转账
         // we need to resume progress using info below
         this.pendingRequests = requests
 
+        // 进行 gas 和 collateral 的检查
         // check token balance, gas cost and collateral 
         if (this.isNativeToken) {
           if (tmpCfxBalance < transferInDrip + userGasCost * BigInt(GlobalDefaultGasPrice)) {
@@ -817,8 +857,7 @@ export default {
         this.txState = TxState.Pending
 
         this.pendingResults = []
-        let latestHash
-        let i
+        let latestHash, i
 
         for (i = 0; i < this.csv.tos.length; i += BATCHLIMIT) {
           let tmpResults = await this.tmpConflux.provider.batch(this.pendingRequests.slice(i, i + BATCHLIMIT))
@@ -852,6 +891,7 @@ export default {
         this.processError(err)
       }
     },
+    // 续发功能
     async doResume() {
       this.errors[ErrorType.TransactionError] = null
       try {
@@ -924,7 +964,6 @@ export default {
         default:
           this.$alert(err.message, this.$t("message.error.error"));
       }
-      // console.log(this.errors)
     },
     setCsv(csv) {
       this.csv = csv;
