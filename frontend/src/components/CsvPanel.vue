@@ -33,6 +33,9 @@
           <el-row>
             {{$t('message.tooltip.csv.big')}}
           </el-row>
+          <el-row>
+            {{$t('message.tooltip.csv.compat')}}
+          </el-row>
         </div>
       </el-upload>
     </el-row>
@@ -77,7 +80,7 @@
           >{{$t('message.command.resetCsv')}}</el-button
         >
       </el-col>
-      <el-col :offset=2 :span=3>
+      <el-col :offset=2 :span=3 v-if="!directSendingMode">
         <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken) && Boolean(account)">
           <div>
             <el-button
@@ -91,6 +94,36 @@
           </div>
         </el-tooltip>
       </el-col>
+      <div v-else>
+        <el-col :offset=2 :span=3>
+          <el-tooltip :effect="effect" :content="disabledTooltipDirectSending" placement="right" :disabled="Boolean(selectedToken)">
+            <div>
+              <el-button
+                size="medium"
+                type="danger"
+                v-if="fileUploaded"
+                @click="$emit('transfer-in-direct-sending-mode')"
+                :disabled="!isFreeState || !selectedToken || isProcessing"
+                >{{$t('message.command.sendInDirectSendingMode')}}</el-button
+              >
+            </div>
+          </el-tooltip>
+        </el-col>
+        <el-col :offset=4 :span=3 v-if="isTransactionError">
+          <el-tooltip :effect="effect" :content="disabledTooltipDirectSending" placement="right" :disabled="Boolean(selectedToken)">
+            <div>
+              <el-button
+                size="medium"
+                type="danger"
+                v-if="fileUploaded"
+                @click="$emit('resume-requests')"
+                :disabled="!isFreeState || !selectedToken || isProcessing"
+                >{{$t('message.command.resumePendingRequestsInDirectSendingMode')}}</el-button
+              >
+            </div>
+          </el-tooltip>
+        </el-col>
+      </div>
     </el-row>
   </el-card>
 </template>
@@ -102,7 +135,7 @@ import Worker from '../worker/process-csv.worker'
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken'],
+  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError'],
   data() {
     return {
       isProcessing: false,
@@ -145,12 +178,13 @@ export default {
             } else {
               console.log(msg)
               let e = new Error(`Unexpected worker message: ${msg.data}`)
-              e._Type = ErrorType.CsvError
+              e._type = ErrorType.CsvError
               this.$emit('process-error', e);
             }
           }
         }
       } catch (err) {
+        this.isProcessing = false
         err._type = ErrorType.CsvError;
         this.$emit('process-error', err);
       }
@@ -163,10 +197,20 @@ export default {
     effect() {
       return this.$store.state.effect;
     },
+    directSendingMode() {
+      return this.$store.state.directSendingMode;
+    },
     disabledTooltip() {
       if (!this.account) {
         return this.$t("message.warning.connectionWarning")
       }
+
+      if(!this.selectedToken) {
+        return this.$t("message.warning.tokenWarning")
+      }
+      return null
+    },
+    disabledTooltipDirectSending() {
 
       if(!this.selectedToken) {
         return this.$t("message.warning.tokenWarning")
@@ -184,6 +228,9 @@ export default {
     },
     isCsvError() {
       return Boolean(this.csvError)
+    },
+    isTransactionError() {
+      return Boolean(this.transactionError)
     },
     csvErrorMessageList() {
       return this.csvError.message.split('\n')

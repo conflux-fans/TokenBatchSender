@@ -1,5 +1,6 @@
 const TxState = {
   NoTask: "NoTask",
+  Preparing: "Preparing",
   Pending: "Pending",
   Executed: "Executed",
   Confirmed: "Confirmed",

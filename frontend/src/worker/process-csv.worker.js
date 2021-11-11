@@ -39,6 +39,13 @@ self.onmessage = (msg) => {
         if (!NetworkType.isValidAddress(addr, chainId, sdk)) {
           throw new Error(`Address is not valid for current network: ${addr}`)
         }
+        
+        if (addr.startsWith("0x")){
+          if (!addr.startsWith("0x1") && !addr.startsWith('0x8') && !addr.startsWith('0x0')) {
+            throw new Error(`A valid conflux hex address is expected to start with 0x0, 0x1, or 0x8`)
+          }
+        }
+
         if (isNaN(val)) {
           throw new Error(`Unexpected value: ${val} is not a number`)
         }

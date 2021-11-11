@@ -34,6 +34,10 @@ const messages = {
         clearHistory: 'CLEAR HISTORY',
         resetCsv: 'RESET CSV',
         send: 'SEND',
+        sendInDirectSendingMode: 'SEND in Compatible Mode',
+        uploadSecretKey: 'SELECT SECRET KEYSTORE FILE',
+        resumePendingRequestsInDirectSendingMode: "RESUME SENDING",
+        doResume: "Do Resume"
       },
       error: {
         networkError: 'Network Error',
@@ -62,8 +66,23 @@ const messages = {
           format: 'Each row is composed of 2 columns: address and amount',
           titleLine: 'Title line is not required. If added, title line MUST be "address, amount"',
           big: 'May wait for a while for big CSV files',
+          compat: 'This sender batches transactions into a single transaction, which implementation may be not compatible with some wallets / exchange. The problem could be solved by using direct sending mode',
           checkExample: 'Check example',
         },
+        directSendingMode: {
+          modeOnTooltip: "Direct sending mode is on",
+          modeOffTooltip: "Direct sending mode is off",
+          password: "Password here",
+          warning: "WARNING for direct sending mode",
+          atomic: "In direct sending mode, transactions will be done one after another",
+          secret: "Secret key file is required, otherwise you have to approve every transaction by using Conflux Portal",
+          error: "In direct sending mode, every 2000 transactions will be batched and sent. Sending would pause if any error occured, and sending cound resume from the break point"
+        },
+        doResume: {
+          progress: "{last} transactions have been sent, press button to resume sending",
+          warning: "WARNING for resume",
+          forbids: "Do not send any other transaction before resuming batch sending"
+        }
       }
     },
   },
@@ -102,6 +121,10 @@ const messages = {
           clearHistory: '清空历史交易',
           resetCsv: '重置CSV文件',
           send: '批量转账',
+          sendInDirectSendingMode: '以直接转账模式进行批量转账',
+          uploadSecretKey: '选择私钥文件',
+          resumePendingRequestsInDirectSendingMode: "续发",
+          doResume: "续发"
         },
         error: {
           networkError: '网络错误',
@@ -130,9 +153,26 @@ const messages = {
             format: '每行为一组数据，第一列为地址，第二列为转账代币数量',
             titleLine: '不需要添加标题行，如果添加，标题行格式只能为 address, amount',
             big: '文件较大时请稍作等待',
+            compat: '本工具通过调用智能合约方法进行批量转账，该方式可能与部分钱包/交易所不兼容。直接转账模式下能解决相应问题。',
             checkExample: '查看示例',
           },
-        }
+          directSendingMode: {
+            modeOnTooltip: "直接转账模式已启用",
+            modeOffTooltip: "直接转账模式已关闭",
+            password: "请输入口令",
+            warning: "直接转账模式须知",
+            atomic: "警告：直接转账模式下交易将会逐笔进行",
+            secret: "直接转账模式需要您的私钥文件（否则使用Conflux Portal需要逐笔授权）",
+            error: "直接转账模式下，每2000笔交易将打包发出。转账因错误中断时，可以使用续发功能从中断的地方继续转账"
+          },
+          doResume: {
+            progress: "您已发出了 {last} 笔交易, 接下来将续发之后的交易",
+            warning: "续发模式说明",
+            condition: "直接发送模式下产生错误时，希望从断点续发时可以选择使用续发模式",
+            forbids: "使用续发功能前请不要用您的账户进行其他交易"
+          }
+        },
+        
       }
   }
 };

@@ -8,7 +8,8 @@
           <el-col :span="6">
             <label class="white-font bold-font">{{ $t("message.title") }}</label>
           </el-col>
-          <el-col :offset="9" :span="3">
+          
+          <el-col :offset="7" :span="3">
             <el-tooltip :effect="effect" :content="$t('message.tooltip.networkTooltip')">
               <el-tag>{{networkText}}</el-tag>
             </el-tooltip>
@@ -22,9 +23,20 @@
                 {{simplifiedAccount}}<i class="el-icon-check el-icon--right"></i>
               </el-button>
           </el-col>
-          <el-col :span="2">
+          <el-col :offset="0" :span="2" style="display: flex; justify-content: center;">
+            <el-tooltip :effect="effect" :content="directSendingModeTooltip" placement="bottom">
+              <el-switch
+                v-model="directSendingMode"
+                inactive-color="#13ce66"
+                active-color="#ff4949"
+                class="mode-switch"
+                >
+              </el-switch>
+            </el-tooltip>
+          </el-col>
+          <el-col :span="2" style="display: flex; justify-content: center;">
             <el-dropdown @command="handleLangCommand" class="full-width">
-              <div class="el-dropdown-link full-width bold-font right-align" style="color: white;">
+              <div class="el-dropdown-link full-width bold-font" style="color: white;">
                 {{ localeText }}<i class="el-icon-arrow-down el-icon--right"></i>
               </div>
               <el-dropdown-menu slot="dropdown">
@@ -73,6 +85,8 @@
 <script>
 import { getScanUrl } from './utils'
 import BatchSender from './components/BatchSender.vue';
+import { default as sdk } from 'js-conflux-sdk'
+
 
 export default {
   components: {
@@ -86,6 +100,21 @@ export default {
     };
   },
   computed: {
+    directSendingMode: {
+      get() {
+        return this.$store.state.directSendingMode
+      },
+      set(val) {
+        this.$store.commit('setDirectSendingMode', val)
+      }
+    },
+    directSendingModeTooltip() {
+      if (this.$store.state.directSendingMode) {
+        return this.$t('message.tooltip.directSendingMode.modeOnTooltip')
+      }
+      return this.$t('message.tooltip.directSendingMode.modeOffTooltip')
+
+    },
     scanAccountUrl() {
       return getScanUrl(this.account, 'address', this.chainId)
     },
@@ -144,7 +173,7 @@ export default {
         this.$store.dispatch('init', {
           conflux: window.conflux,
           confluxJS: window.confluxJS,
-          sdk: window.ConfluxJSSDK
+          sdk,
         })
       } else {
         this.installationDialogVisible = true
@@ -241,5 +270,13 @@ body,
 
 .no-break {
   word-break: normal;
+}
+
+/* .mode-switch /deep/ .el-switch__core {
+  align-items: center;
+} */
+
+.mode-switch {
+  align-items: center;
 }
 </style>

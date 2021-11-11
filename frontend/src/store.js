@@ -15,7 +15,8 @@ const store = new Vuex.Store({
     account: null,
     cfxBalance: null,
     confluxJS: null,
-    effect: 'light'
+    effect: 'light',
+    directSendingMode: false
   },
   getters: {
     simplifiedAccount: state => {
@@ -60,6 +61,9 @@ const store = new Vuex.Store({
     resetCfxBalance(state) {
       state.cfxBalance = null
     },
+    setDirectSendingMode(state, val) {
+      state.directSendingMode = val
+    }
   },
   actions: {
     async authorize(context) {
