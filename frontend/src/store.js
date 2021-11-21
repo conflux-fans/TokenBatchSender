@@ -19,7 +19,7 @@ const store = new Vuex.Store({
     effect: 'light',
     directSendingMode: false,
     keystore: null,
-    secretKey: null
+    privateKey: null
   },
   getters: {
     simplifiedAccount: state => {
@@ -46,7 +46,6 @@ const store = new Vuex.Store({
           console.log(accounts)
           if (accounts.length === 0) {
             store.commit('resetAccount')
-            store.commit('resetCfxBalance')
           } else {
             const account = accounts[0]
             store.commit('setAccount', {account})
@@ -61,26 +60,23 @@ const store = new Vuex.Store({
     },
     resetAccount(state) {
       state.account = null
+      state.cfxBalance = null
+      state.keystore = null
+      state.privateKey = null
     },
     setCfxBalance(state, payload) {
       state.cfxBalance = payload.cfxBalance
-    },
-    resetCfxBalance(state) {
-      state.cfxBalance = null
     },
     setDirectSendingMode(state, val) {
       state.directSendingMode = val
       localStorage.directSendingMode = val
     },
-    setKeystore(state, val) {
-      if (!state.directSendingMode) {
-        throw new Error("unexpected mutation: not in direct sending mode")
+    decryptKeystore(state, password) {
+      if (!state.keystore) {
+        throw new Error("keystore is not selected")
       }
-      state.secretKey = null
-      const account = state.sdk.format.address(`0x${val.address}`, parseInt(state.conflux?.chainId))
-      store.commit('setAccount', {account})
-      store.dispatch('updateCfxBalance')
-      state.keystore = val
+      const account = state.sdk.PrivateKeyAccount.decrypt(state.keystore, password, parseInt(state.conflux?.chainId))
+      state.privateKey = account.privateKey
     }
   },
   actions: {
@@ -98,6 +94,28 @@ const store = new Vuex.Store({
     async init(context, payload) {
       context.commit('init', payload);
     },
+    async setPrivateKey({ state }, { privateKey, address }) {
+      if (!address) {
+        address = state.sdk.sign.privateKeyToAddress(privateKey, parseInt(state.conflux?.chainId))
+      }
+      // refresh account
+      if (address !== state.account) {
+        store.commit('setAccount', {account: address})
+        store.dispatch('updateCfxBalance')
+      }
+      
+      state.privateKey = privateKey
+    },
+    async setKeystore({ state }, val) {
+      if (!state.directSendingMode) {
+        throw new Error("unexpected mutation: not in direct sending mode")
+      }
+      state.privateKey = null
+      const account = state.sdk.format.address(`0x${val.address}`, parseInt(state.conflux?.chainId))
+      store.commit('setAccount', {account})
+      store.dispatch('updateCfxBalance')
+      state.keystore = val
+    }
   }
 })
 

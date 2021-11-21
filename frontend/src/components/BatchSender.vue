@@ -112,19 +112,7 @@
       :title="$t('message.command.sendInDirectSendingMode')"
       width="45%"
     >
-      <el-row v-if="!Boolean(tmpKeystore)">
-        <el-upload
-          class="full-width"
-          action="/hello"
-          :before-upload="handleKeystore"
-        >
-          <el-button
-            type="danger"
-          >{{$t('message.command.uploadSecretKey')}}<i class="el-icon-upload2" style="font-size: 3em"></i>
-          </el-button>
-        </el-upload>
-      </el-row>
-      <div v-else>
+      <div>
         <el-row>
           <el-col :span=8>
             <el-input v-model="tmpPassword" :placeholder="$t('message.tooltip.directSendingMode.password')" show-password></el-input>
@@ -191,10 +179,9 @@ import CurrentTransactionPanel from "./CurrentTransactionPanel.vue";
 import PromiseWorker from "promise-worker"
 // import { default as sdk } from 'js-conflux-sdk'
 import Worker from '../worker/requests.worker'
+import { BATCHLIMIT, GlobalDefaultGasPrice } from "../utils/const"
 
 const BigInt = window.BigInt
-const GlobalDefaultGasPrice = 100
-const BATCHLIMIT = 2000
 
 export default {
   components: {
@@ -237,9 +224,8 @@ export default {
       resumeDialogVisible: false,
 
       tmpConflux: null,
-      tmpKeystore: null,
       tmpPassword: "",
-      tmpAccount: null,
+      // tmpAccount: null,
 
       pendingRequests: [],
       pendingResults: [],
@@ -261,6 +247,12 @@ export default {
     sdk() {
       return this.$store.state.sdk;
     },
+    privateKey() {
+      return this.$store.state.privateKey;
+    },
+    // keystore() {
+    //   return this.$store.state.privateKey;
+    // },
     cfxBalance() {
       return this.$store.state.cfxBalance;
     },
@@ -621,7 +613,7 @@ export default {
             "0x0"
           )
 
-          tx.from = this.tmpAccount
+          tx.from = this.account
           estimateBatcher.add(this.tmpConflux.cfx.estimateGasAndCollateral.request(tx))
         }
       }
@@ -643,14 +635,14 @@ export default {
       let promiseWorker = new PromiseWorker(worker);
 
       const epochNumber = await this.tmpConflux.getEpochNumber("latest_state")
-      const initNonce = await this.tmpConflux.getNextNonce(this.tmpAccount.address)
+      const initNonce = await this.tmpConflux.getNextNonce(this.account)
       
       for (let i = 0; i < this.csv.tos.length; i+=1){
         try {
           let tx
           if (this.isNativeToken) {
             tx = new this.sdk.Transaction({
-              from: this.tmpAccount.address,
+              from: this.account,
               to: this.csv.tos[i],
               value: this.fromCfxToDripWithDecimals(this.csv.vals[i]),
               gas: 21000,
@@ -687,7 +679,7 @@ export default {
             type: "sign",
             data: {
               txOptions: tx,
-              privateKey: this.tmpAccount.privateKey,
+              privateKey: this.privateKey,
               chainId: parseInt(this.chainId)
             }
           })
@@ -726,7 +718,7 @@ export default {
 
       // check if the account is sponsored
       const sponsorContract = this.confluxJS.Contract(sponsorContractConfig[parseInt(this.chainId)])
-      whitelisted = tmpContract ? await sponsorContract.isWhitelisted(tmpContract.address, this.tmpAccount.address) : false
+      whitelisted = tmpContract ? await sponsorContract.isWhitelisted(tmpContract.address, this.account) : false
 
       console.log(`account is whitelisted?: ${whitelisted}`)
 
@@ -798,14 +790,14 @@ export default {
             throw new Error("unexpected chainId: " + this.chainId)
         }
 
-        this.tmpAccount = this.tmpConflux.wallet.addKeystore(this.tmpKeystore, this.tmpPassword)
+        this.$store.commit("decryptKeystore", this.tmpPassword)
 
         // 2. 仅进行转账balance的检查
         let tmpCfxBalance = null, tmpContract = null, tmpTokenBalance = null
-        tmpCfxBalance = BigInt((await this.tmpConflux.getBalance(this.tmpAccount.address)).toString())
+        tmpCfxBalance = BigInt((await this.tmpConflux.getBalance(this.account)).toString())
         if (!this.isNativeToken) {
-          tmpContract = this.tmpConflux.Contract(tokenConfig[this.selectedToken])
-          tmpTokenBalance = BigInt((await tmpContract.balanceOf(this.tmpAccount.address)).toString())
+          tmpContract = this.contract
+          tmpTokenBalance = BigInt((await tmpContract.balanceOf(this.account)).toString())
         }
 
         let transferInDrip = BigInt(this.fromCfxToDripWithDecimals(preciseSum(this.csv.vals)))
@@ -845,7 +837,7 @@ export default {
 
         // begin batch sending using requests from constructReqsAndGetGasCost()
         const len = this.csv.tos.length
-        this.latestTransactionInfo.from = this.tmpAccount.address
+        this.latestTransactionInfo.from = this.account
         this.latestTransactionInfo.csv = this.csv;
         this.latestTransactionInfo.chainId = this.chainId;
         this.latestTransactionInfo.selectedToken = this.selectedToken;

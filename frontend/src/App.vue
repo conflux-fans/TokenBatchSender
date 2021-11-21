@@ -69,6 +69,9 @@
               >{{ account }} <i class="el-icon-top-right el-icon--right"></i
             ></el-link>
           </span>
+          <el-button type="warning" size="small" @click='$store.commit("resetAccount")'>logout</el-button>
+        </el-row>
+        <el-row>
         </el-row>
       </el-dialog>
 
@@ -256,7 +259,7 @@ export default {
       try {
         const sk_v3 = JSON.parse(await file.text());
         // this.keystore = sk_v3;
-        this.$store.commit("setKeystore", sk_v3)
+        await this.$store.dispatch("setKeystore", sk_v3)
         this.directSendingDiaglogVisible = false
       } catch (err) {
         // console.log(err)
