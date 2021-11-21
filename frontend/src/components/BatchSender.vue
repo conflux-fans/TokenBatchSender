@@ -148,6 +148,9 @@
       <div>
         <el-row> {{ $t('message.tooltip.doResume.progress', { 'last': pendingResults.length }) }} </el-row>
         <el-row>
+          <el-col :span=8 v-if="!privateKey">
+            <el-input v-model="tmpPassword" :placeholder="$t('message.tooltip.directSendingMode.password')" show-password></el-input>
+          </el-col>
           <el-col :span=12>
             <el-button
               @click="doResume"
@@ -393,22 +396,6 @@ export default {
     openResumeDialog() {
       this.resumeDialogVisible = true
     },
-    handleKeystore(file) {
-      this.tmpConflux = null
-      this.processKeystore(file)
-      return false
-    },
-    async processKeystore(file) {
-      try {
-        const sk_v3 = JSON.parse(await file.text())
-        this.tmpKeystore = sk_v3
-      } catch (err) {
-        // console.log(err)
-        err._type = ErrorType.DirectSendingDialogError
-        this.processError(err)
-        return 
-      }
-    },
     fetchTransactionList() {
       if (localStorage.transactionList) {
         this.transactionList = JSON.parse(localStorage.transactionList);
@@ -590,7 +577,7 @@ export default {
     /**
      * 用batch进行estimate
      */
-    async doBatchEstimate(tmpContract) {
+    async doBatchEstimate() {
       let worker = new Worker();
       let promiseWorker = new PromiseWorker(worker);
       const estimateBatcher = this.tmpConflux.BatchRequest()
@@ -607,7 +594,7 @@ export default {
               decimals: this.decimals
             }
           })
-          const tx = tmpContract.send(
+          const tx = this.contract.send(
             this.csv.tos[i],
             drip,
             "0x0"
@@ -626,7 +613,7 @@ export default {
      * 构造raw交易 并返回gas与storage cost
      * 需要使用之前estimate的结果
      */
-    async constructReqsAndGetGasCostUsingEstimateResults(tmpContract, estimateResults) {
+    async constructReqsAndGetGasCostUsingEstimateResults(estimateResults) {
       let gasCostSum = BigInt(0)
       let storageSum = BigInt(0)
       let requests = []
@@ -656,7 +643,7 @@ export default {
             gasCostSum += BigInt(21000)
           } else {
             // construct data field
-            tx = tmpContract.send(
+            tx = this.contract.send(
               this.csv.tos[i],
               this.fromCfxToDripWithDecimals(this.csv.vals[i]),
               "0x0"
@@ -708,7 +695,7 @@ export default {
      * userGasCost 用户需要支付的 gas 数，有代付时为0
      * userStorageCost 对应的storage limit， 有代付时为0
      */
-    async constructReqsAndGetGasCost(tmpContract) {
+    async constructReqsAndGetGasCost() {
 
       // 1. 确认合约代付状态
 
@@ -718,7 +705,7 @@ export default {
 
       // check if the account is sponsored
       const sponsorContract = this.confluxJS.Contract(sponsorContractConfig[parseInt(this.chainId)])
-      whitelisted = tmpContract ? await sponsorContract.isWhitelisted(tmpContract.address, this.account) : false
+      whitelisted = this.isNativeToken ? false : await sponsorContract.isWhitelisted(this.contract.address, this.account)
 
       console.log(`account is whitelisted?: ${whitelisted}`)
 
@@ -733,12 +720,12 @@ export default {
       let estimateResults
       if (!this.isNativeToken) {
         // const wrapper = new BatchRequesterWrapper(estimateBatcher)
-        estimateResults = await this.doBatchEstimate(tmpContract)
+        estimateResults = await this.doBatchEstimate()
       }
 
       // 3. 使用estimate的结果 构造所有的请求
       //    签名用worker进行
-      let { requests, gasCostSum, storageSum } = await this.constructReqsAndGetGasCostUsingEstimateResults(tmpContract, estimateResults)
+      let { requests, gasCostSum, storageSum } = await this.constructReqsAndGetGasCostUsingEstimateResults(estimateResults)
       
       // 4. 处理 gas 和 stoarage
       // 当赞助余额不足以 cover 交易消耗时，我们认为赞助将不会被使用（虽然实际情况是消耗一部分赞助 另一部分由原本的账户承担）
@@ -789,15 +776,18 @@ export default {
           default:
             throw new Error("unexpected chainId: " + this.chainId)
         }
-
-        this.$store.commit("decryptKeystore", this.tmpPassword)
+        try{
+          this.$store.commit("decryptKeystore", this.tmpPassword)
+        }
+        finally{
+          this.tmpPassword = ""
+        }
 
         // 2. 仅进行转账balance的检查
-        let tmpCfxBalance = null, tmpContract = null, tmpTokenBalance = null
+        let tmpCfxBalance = null, tmpTokenBalance = null
         tmpCfxBalance = BigInt((await this.tmpConflux.getBalance(this.account)).toString())
         if (!this.isNativeToken) {
-          tmpContract = this.contract
-          tmpTokenBalance = BigInt((await tmpContract.balanceOf(this.account)).toString())
+          tmpTokenBalance = BigInt((await this.contract.balanceOf(this.account)).toString())
         }
 
         let transferInDrip = BigInt(this.fromCfxToDripWithDecimals(preciseSum(this.csv.vals)))
@@ -813,7 +803,7 @@ export default {
           }
         }
         // 3. 初步检查完毕，进行构造交易
-        const {requests, userGasCost, userStorageCost} = await this.constructReqsAndGetGasCost(tmpContract)
+        const {requests, userGasCost, userStorageCost} = await this.constructReqsAndGetGasCost()
         
         // 4. 进行转账
         // we need to resume progress using info below
@@ -843,7 +833,7 @@ export default {
         this.latestTransactionInfo.selectedToken = this.selectedToken;
         this.latestTransactionInfo.hashesForDirectMode = new Array(len)
         if (!this.isNativeToken) {
-          this.latestTransactionInfo.tokenAddress = tmpContract.address
+          this.latestTransactionInfo.tokenAddress = this.contract.address
         }
 
         this.txState = TxState.Pending

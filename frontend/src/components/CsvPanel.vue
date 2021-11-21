@@ -110,14 +110,14 @@
           </el-tooltip>
         </el-col>
         <el-col :offset=4 :span=3 v-if="isTransactionError">
-          <el-tooltip :effect="effect" :content="disabledTooltipDirectSending" placement="right" :disabled="Boolean(selectedToken)">
+          <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
             <div>
               <el-button
                 size="medium"
                 type="danger"
                 v-if="fileUploaded"
                 @click="$emit('resume-requests')"
-                :disabled="!isFreeState || !selectedToken || isProcessing"
+                :disabled="!isFreeState || !selectedToken || !account || isProcessing"
                 >{{$t('message.command.resumePendingRequestsInDirectSendingMode')}}</el-button
               >
             </div>
