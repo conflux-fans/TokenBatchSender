@@ -31,23 +31,28 @@ const store = new Vuex.Store({
   // mutations 只能为同步事务 异步操作在 actions 内完成
   mutations: {
     init(state, payload) {
-      const { conflux, confluxJS, sdk } = payload;
+      const { conflux, confluxJS, sdk, directSendingMode } = payload;
       state.conflux = conflux;
       state.confluxJS = confluxJS;
       state.sdk = sdk;
+      // value read from localstorage will be converted into string 
+      state.directSendingMode = directSendingMode === 'true' ? true : false
 
-      state.conflux.on("accountsChanged", (accounts) => {
-        console.log("accounts changed");
-        console.log(accounts)
-        if (accounts.length === 0) {
-          store.commit('resetAccount')
-          store.commit('resetCfxBalance')
-        } else {
-          const account = accounts[0]
-          store.commit('setAccount', {account})
-          store.dispatch('updateCfxBalance')
-        }
-      })
+      if (!state.directSendingMode) {
+        state.conflux.on("accountsChanged", (accounts) => {
+          console.log("accounts changed");
+          console.log(accounts)
+          if (accounts.length === 0) {
+            store.commit('resetAccount')
+            store.commit('resetCfxBalance')
+          } else {
+            const account = accounts[0]
+            store.commit('setAccount', {account})
+            store.dispatch('updateCfxBalance')
+          }
+        })
+      }
+      
     },
     setAccount(state, payload) {
       state.account = payload.account
@@ -63,6 +68,7 @@ const store = new Vuex.Store({
     },
     setDirectSendingMode(state, val) {
       state.directSendingMode = val
+      localStorage.directSendingMode = val
     }
   },
   actions: {

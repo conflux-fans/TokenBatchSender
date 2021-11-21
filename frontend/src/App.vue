@@ -106,6 +106,7 @@ export default {
       },
       set(val) {
         this.$store.commit('setDirectSendingMode', val)
+        location.reload()
       }
     },
     directSendingModeTooltip() {
@@ -174,6 +175,7 @@ export default {
           conflux: window.conflux,
           confluxJS: window.confluxJS,
           sdk,
+          directSendingMode: localStorage.directSendingMode
         })
       } else {
         this.installationDialogVisible = true

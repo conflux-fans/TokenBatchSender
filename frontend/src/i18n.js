@@ -70,8 +70,8 @@ const messages = {
           checkExample: 'Check example',
         },
         directSendingMode: {
-          modeOnTooltip: "Direct sending mode is on",
-          modeOffTooltip: "Direct sending mode is off",
+          modeOnTooltip: "Direct sending mode is on. Page will refresh if mode is changed",
+          modeOffTooltip: "Direct sending mode is off. Page will refresh if mode is changed",
           password: "Password here",
           warning: "WARNING for direct sending mode",
           atomic: "In direct sending mode, transactions will be done one after another",
@@ -157,8 +157,8 @@ const messages = {
             checkExample: '查看示例',
           },
           directSendingMode: {
-            modeOnTooltip: "直接转账模式已启用",
-            modeOffTooltip: "直接转账模式已关闭",
+            modeOnTooltip: "直接转账模式已启用。切换模式后，页面会自动刷新",
+            modeOffTooltip: "直接转账模式已关闭。切换模式后，页面会自动刷新",
             password: "请输入口令",
             warning: "直接转账模式须知",
             atomic: "警告：直接转账模式下交易将会逐笔进行",
