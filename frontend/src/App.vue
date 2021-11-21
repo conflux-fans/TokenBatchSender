@@ -15,8 +15,17 @@
             </el-tooltip>
           </el-col>
           
-          <el-col :span="4" v-if="!accountConnected" > 
-            <el-button   class="full-width" round v-on:click="authorize">{{ $t("message.connect") }}</el-button>
+          <el-col :span="4" v-if="!accountConnected">
+            <el-button
+              v-if="!directSendingMode"
+              class="full-width"
+              round
+              v-on:click="authorize"
+              >{{ $t("message.connect") }}</el-button
+            >
+            <el-button v-else class="full-width" round v-on:click="directSendingDiaglogVisible = true">{{
+              $t("message.command.uploadSecretKey")
+            }}</el-button>
           </el-col>
           <el-col :span="4" v-if="accountConnected">
               <el-button class="full-width" type="success" @click="showAccount">
@@ -75,6 +84,25 @@
         </el-row>
       </el-dialog>
 
+      <el-dialog
+        :visible.sync="directSendingDiaglogVisible"
+        :title='$t("message.command.uploadSecretKey")'
+        width="45%"
+      >
+        <el-row>
+          <el-upload
+            class="full-width"
+            action="/hello"
+            :before-upload="handleKeystore"
+          >
+            <el-button type="danger"
+              >{{ $t("message.command.uploadSecretKey")
+              }}<i class="el-icon-upload2" style="font-size: 3em"></i>
+            </el-button>
+          </el-upload>
+        </el-row>
+      </el-dialog>
+
       <el-main class="main-background">
         <batch-sender></batch-sender>
       </el-main>
@@ -97,6 +125,7 @@ export default {
     return {
       accountDialogVisible: false,
       installationDialogVisible: false,
+      directSendingDiaglogVisible: false,
     };
   },
   computed: {
@@ -171,11 +200,13 @@ export default {
     // executed immediately after page is fully loaded
     this.$nextTick(function() {
       if (typeof window.conflux !== "undefined") {
+        const directSendingMode =
+          localStorage.directSendingMode === "true" ? true : false;
         this.$store.dispatch('init', {
           conflux: window.conflux,
           confluxJS: window.confluxJS,
           sdk,
-          directSendingMode: localStorage.directSendingMode
+          directSendingMode,
         })
       } else {
         this.installationDialogVisible = true
@@ -216,6 +247,23 @@ export default {
     },
     showAccount() {
       this.accountDialogVisible = true;
+    },
+    handleKeystore(file) {
+      this.processKeystore(file);
+      return false;
+    },
+    async processKeystore(file) {
+      try {
+        const sk_v3 = JSON.parse(await file.text());
+        // this.keystore = sk_v3;
+        this.$store.commit("setKeystore", sk_v3)
+        this.directSendingDiaglogVisible = false
+      } catch (err) {
+        // console.log(err)
+        // err._type = ErrorType.DirectSendingDialogError
+        this.processError(err);
+        return;
+      }
     },
   },
 };

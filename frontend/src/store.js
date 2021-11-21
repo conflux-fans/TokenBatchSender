@@ -12,11 +12,14 @@ Vue.use(Vuex)
 const store = new Vuex.Store({
   state: {
     conflux: null,
+    // the address of the account
     account: null,
     cfxBalance: null,
     confluxJS: null,
     effect: 'light',
-    directSendingMode: false
+    directSendingMode: false,
+    keystore: null,
+    secretKey: null
   },
   getters: {
     simplifiedAccount: state => {
@@ -35,8 +38,7 @@ const store = new Vuex.Store({
       state.conflux = conflux;
       state.confluxJS = confluxJS;
       state.sdk = sdk;
-      // value read from localstorage will be converted into string 
-      state.directSendingMode = directSendingMode === 'true' ? true : false
+      state.directSendingMode = directSendingMode
 
       if (!state.directSendingMode) {
         state.conflux.on("accountsChanged", (accounts) => {
@@ -69,6 +71,16 @@ const store = new Vuex.Store({
     setDirectSendingMode(state, val) {
       state.directSendingMode = val
       localStorage.directSendingMode = val
+    },
+    setKeystore(state, val) {
+      if (!state.directSendingMode) {
+        throw new Error("unexpected mutation: not in direct sending mode")
+      }
+      state.secretKey = null
+      const account = state.sdk.format.address(`0x${val.address}`, parseInt(state.conflux?.chainId))
+      store.commit('setAccount', {account})
+      store.dispatch('updateCfxBalance')
+      state.keystore = val
     }
   },
   actions: {
