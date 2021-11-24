@@ -69,7 +69,7 @@
               >{{ account }} <i class="el-icon-top-right el-icon--right"></i
             ></el-link>
           </span>
-          <el-button type="warning" size="small" @click='$store.commit("resetAccount")'>logout</el-button>
+          <el-button type="warning" size="small" @click='$store.commit("resetAccount")'> {{ $t("message.command.logout") }} </el-button>
         </el-row>
         <el-row>
         </el-row>
@@ -278,8 +278,6 @@ export default {
         await this.$store.dispatch("setKeystore", sk_v3)
         this.secretKeyDiaglogVisible = false
       } catch (err) {
-        // console.log(err)
-        // err._type = ErrorType.DirectSendingDialogError
         this.processError(err);
         return;
       }

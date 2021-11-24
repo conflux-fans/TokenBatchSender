@@ -109,7 +109,7 @@
             </div>
           </el-tooltip>
         </el-col>
-        <el-col :offset=4 :span=3 v-if="isTransactionError">
+        <el-col :offset=4 :span=3 v-if="pendingResults.length">
           <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
             <div>
               <el-button
@@ -135,7 +135,7 @@ import Worker from '../worker/process-csv.worker'
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError'],
+  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError', "pendingResults"],
   data() {
     return {
       isProcessing: false,

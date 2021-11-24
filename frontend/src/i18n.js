@@ -54,6 +54,7 @@ const messages = {
         clearHistory: 'All history transactions will be deleted, are you sure?',
       },
       tooltip: {
+        balanceRefreshed: "Balance Refreshed",
         networkTooltip: 'Change network in ConfluxPortal',
         portal: {
           beg: "Chrome extension ",
@@ -84,9 +85,8 @@ const messages = {
           error: "In direct sending mode, every 2000 transactions will be batched and sent. Sending would pause if any error occured, and sending cound resume from the break point"
         },
         doResume: {
-          progress: "{last} transactions have been sent, press button to resume sending",
+          progress: "{last} transactions have been sent, press button to check the latest transaction status and resume sending (if there are unsent transactions)",
           warning: "WARNING for resume",
-          forbids: "Do not send any other transaction before resuming batch sending"
         }
       }
     },
@@ -146,6 +146,7 @@ const messages = {
           clearHistory: '确定清空所有历史交易吗?',
         },
         tooltip: {
+          balanceRefreshed: "余额已更新",
           networkTooltip: '在 ConfluxPortal 中切换网络',
           portal: {
             beg: "使用Conflux测试网水龙头需要安装浏览器插件",
@@ -176,10 +177,9 @@ const messages = {
             error: "直接转账模式下，每2000笔交易将打包发出。转账因错误中断时，可以使用续发功能从中断的地方继续转账"
           },
           doResume: {
-            progress: "您已发出了 {last} 笔交易, 接下来将续发之后的交易",
+            progress: "您已发出了 {last} 笔交易, 接下来将确认已发送交易的状态并续发之后的交易（如果仍有交易需要续发）",
             warning: "续发模式说明",
             condition: "直接发送模式下产生错误时，希望从断点续发时可以选择使用续发模式",
-            forbids: "使用续发功能前请不要用您的账户进行其他交易"
           }
         },
         

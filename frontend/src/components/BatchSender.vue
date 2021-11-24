@@ -6,7 +6,7 @@
           <el-row class="bold-font">
             <el-col :span="5">{{ $t("message.token") }}</el-col>
             <el-col :offset="2" :span="11">
-              {{ $t("message.tokenBalance") }}
+              {{ $t("message.tokenBalance") }} <i class="el-icon-refresh-right" style="cursor: pointer" @click="refreshBalance"></i>
             </el-col>
             <el-col :offset="2" :span="2">
               {{ $t("message.decimals") }}
@@ -69,6 +69,7 @@
           v-bind:csvError="errors['csvError']"
           v-bind:transactionError="errors['transactionError']"
           v-bind:selectedToken="selectedToken"
+          v-bind:pendingResults="pendingResults"
           v-on:process-error="processError"
           v-on:set-csv="setCsv"
           v-on:reset-csv="resetCsv"
@@ -230,7 +231,6 @@ export default {
       tmpPassword: "",
       // tmpAccount: null,
 
-      pendingRequests: [],
       pendingResults: [],
     };
   },
@@ -451,6 +451,23 @@ export default {
       } catch (e) {
         e._type = ErrorType.BalanceError;
         throw e;
+      }
+    },
+    async refreshBalance() {
+      if (!this.account) return
+      try {
+        await Promise.all([
+          this.$store.dispatch("updateCfxBalance"),
+          this.updateTokenBalance(),
+        ]);
+        this.$notify({
+          title: this.$t("message.tooltip.balanceRefreshed"),
+          type: "success",
+          offset: 60,
+          duration: 6000
+        });
+      } catch (e) {
+        this.processError(e)
       }
     },
     fromDripToCfxWithDecimals(drip) {
@@ -811,8 +828,6 @@ export default {
         const {requests, userGasCost, userStorageCost} = await this.constructReqsAndGetGasCost(start)
         
         // 4. 进行转账
-        // we need to resume progress using info below
-        this.pendingRequests = requests
 
         // 进行 gas 和 collateral 的检查
         // check token balance, gas cost and collateral 
@@ -853,7 +868,7 @@ export default {
         }
 
         for (i = 0; i + start < this.csv.tos.length; i += BATCHLIMIT) {
-          let tmpResults = await this.tmpConflux.provider.batch(this.pendingRequests.slice(i, i + BATCHLIMIT))
+          let tmpResults = await this.tmpConflux.provider.batch(requests.slice(i, i + BATCHLIMIT))
           // console.log(tmpResults)
           latestHash = tmpResults[tmpResults.length - 1]
           // console.log(`latestHash: ${latestHash}`)
@@ -866,10 +881,15 @@ export default {
           if (i + BATCHLIMIT < this.csv.tos.length)
             this.notifyTxState(`${this.pendingResults.length} transactions have been executed`)
         }
+        await Promise.all([
+          this.$store.dispatch("updateCfxBalance"),
+          this.updateTokenBalance(),
+        ]);
 
         this.txState = TxState.Executed
         this.notifyTxState();
         this.latestTransactionInfo.hashesForDirectMode = this.pendingResults
+        this.pendingResults = []
 
         await confirmed(this.tmpConflux, latestHash)
         this.latestTransactionInfo.confirmDate = Date.now();
@@ -881,6 +901,7 @@ export default {
         this.notifyTxState();
       } catch (err) {
         err._type = ErrorType.TransactionError
+        this.latestTransactionInfo.hashesForDirectMode = this.pendingResults
         this.processError(err)
       }
     },
@@ -889,9 +910,6 @@ export default {
       this.errors[ErrorType.TransactionError] = null
       try {
         this.txState = TxState.Preparing
-        // console.log(this.pendingRequests)
-        if (this.pendingRequests == null)
-          throw new Error("No pending requests found")
         this.resumeDialogVisible = false
         // nonce for latest_state
 
@@ -934,6 +952,7 @@ export default {
     },
     resetCsv() {
       this.csv = null;
+      this.pendingResults = []
       this.errors[ErrorType.CsvError] = null;
     },
     resetBalance() {
