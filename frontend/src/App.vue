@@ -23,8 +23,8 @@
               v-on:click="authorize"
               >{{ $t("message.connect") }}</el-button
             >
-            <el-button v-else class="full-width" round v-on:click="directSendingDiaglogVisible = true">{{
-              $t("message.command.uploadSecretKey")
+            <el-button v-else class="full-width" round v-on:click="secretKeyDiaglogVisible = true">{{
+              $t("message.importSecretKey")
             }}</el-button>
           </el-col>
           <el-col :span="4" v-if="accountConnected">
@@ -88,22 +88,36 @@
       </el-dialog>
 
       <el-dialog
-        :visible.sync="directSendingDiaglogVisible"
-        :title='$t("message.command.uploadSecretKey")'
+        :visible.sync="secretKeyDiaglogVisible"
         width="45%"
+        :show-close="false"
+        class="secret-input"
       >
-        <el-row>
-          <el-upload
-            class="full-width"
-            action="/hello"
-            :before-upload="handleKeystore"
-          >
-            <el-button type="danger"
-              >{{ $t("message.command.uploadSecretKey")
-              }}<i class="el-icon-upload2" style="font-size: 3em"></i>
-            </el-button>
-          </el-upload>
-        </el-row>
+        <el-tabs v-model="secretKeyInputMode">
+          <el-tab-pane :label="$t('message.tooltip.directSendingMode.selectKeystore')" name="keystore">
+            <el-row>
+              <el-upload
+                class="full-width"
+                action="/hello"
+                :before-upload="handleKeystore"
+              >
+                <el-button type="danger"
+                  >{{ $t("message.command.uploadSecretKey")
+                  }}<i class="el-icon-key" style="font-size: 1em"></i>
+                </el-button>
+              </el-upload>
+            </el-row>
+          </el-tab-pane>
+          <el-tab-pane :label="$t('message.tooltip.directSendingMode.inputSecretKey')" name="sk">
+            <el-input
+              :placeholder="$t('message.tooltip.directSendingMode.secretKeyPlaceholder')"
+              v-model="secretKey">
+            <el-button slot="append" @click="setSecretKey"> {{ $t("message.ok") }} </el-button>
+
+            </el-input>
+          </el-tab-pane>
+        </el-tabs>
+        
       </el-dialog>
 
       <el-main class="main-background">
@@ -128,7 +142,9 @@ export default {
     return {
       accountDialogVisible: false,
       installationDialogVisible: false,
-      directSendingDiaglogVisible: false,
+      secretKeyDiaglogVisible: false,
+      secretKeyInputMode: "keystore",
+      secretKey: "",
     };
   },
   computed: {
@@ -260,7 +276,7 @@ export default {
         const sk_v3 = JSON.parse(await file.text());
         // this.keystore = sk_v3;
         await this.$store.dispatch("setKeystore", sk_v3)
-        this.directSendingDiaglogVisible = false
+        this.secretKeyDiaglogVisible = false
       } catch (err) {
         // console.log(err)
         // err._type = ErrorType.DirectSendingDialogError
@@ -268,6 +284,14 @@ export default {
         return;
       }
     },
+    async setSecretKey() {
+      try {
+        await this.$store.dispatch("setSecretKey", this.secretKey)
+        this.secretKeyDiaglogVisible = false
+      } catch (err) {
+        this.processError(err)
+      }
+    }
   },
 };
 </script>
@@ -331,5 +355,14 @@ body,
 
 .mode-switch {
   align-items: center;
+}
+
+
+</style>
+
+<style scoped>
+.secret-input >>> .el-dialog__header {
+  padding: 0px 0px 0px 0px;
+  color: red
 }
 </style>

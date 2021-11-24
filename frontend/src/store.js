@@ -115,6 +115,16 @@ const store = new Vuex.Store({
       store.commit('setAccount', {account})
       store.dispatch('updateCfxBalance')
       state.keystore = val
+    },
+    async setSecretKey({state}, val) {
+      if (!state.directSendingMode) {
+        throw new Error("unexpected mutation: not in direct sending mode")
+      }
+      state.privateKey = null
+      const account = (new state.sdk.PrivateKeyAccount(val, parseInt(state.conflux?.chainId))).address
+      store.commit('setAccount', {account})
+      store.dispatch('updateCfxBalance')
+      state.privateKey = val
     }
   }
 })
