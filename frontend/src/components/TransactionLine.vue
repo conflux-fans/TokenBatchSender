@@ -16,7 +16,7 @@
         </el-col>
       </el-row>
     <el-row v-if="transactionInfo.hash">
-      <span>{{$t('message.transactionHash')}}：<el-link :href="scanTransacationUrl" type="primary" target="_blank">{{hash}} <i class="el-icon-top-right el-icon--right"></i></el-link></span>
+      <span>{{$t('message.transactionHash')}}：<el-link :href="scanTransacationUrl(transactionInfo.hash)" type="primary" target="_blank">{{hash}} <i class="el-icon-top-right el-icon--right"></i></el-link></span>
     </el-row>
     <el-row>
       {{$t('message.sender')}}:
@@ -26,30 +26,39 @@
       {{$t('message.tokenContractAddress')}}:
       <el-link :href="scanContractUrl" type="primary" target="_blank">{{tokenAddress}} <i class="el-icon-top-right el-icon--right"></i></el-link>
     </el-row>
-
     <el-row>
-      <el-table :data="tableData" height="283" stripe>
+      <el-button type="info" @click="tableDrawerVisible=true">details</el-button>
+    </el-row>
+
+    <el-drawer
+      :visible.sync="tableDrawerVisible"
+      direction="rtl"
+      size="70%"
+      title="details"
+    >
+      <el-table :data="tableData" stripe
+          max-height="600">
         <el-table-column
-          fixed
           prop="address"
           :label="$t('message.address')"
           width="400"
         ></el-table-column>
         <el-table-column
-          fixed
           prop="value"
           :label="$t('message.tokenAmount')"
           width="100"
         ></el-table-column>
         <el-table-column
           v-if="transactionInfo.hashesForDirectMode"
-          fixed
-          prop="hash"
           label="hash"
           width="300"
-        ></el-table-column>
+        >
+          <template slot-scope="scope">
+            <el-link :href="scanTransacationUrl(scope.row.hash)" type="primary" target="_blank">{{scope.row.hash}} <i class="el-icon-top-right el-icon--right"></i></el-link>
+          </template>
+        </el-table-column>
       </el-table>
-    </el-row>
+    </el-drawer>
   </el-collapse-item>
 </template>
 <script>
@@ -60,6 +69,7 @@ export default {
   props: ["transactionInfo"],
   data() {
     return {
+      tableDrawerVisible: false,
     };
   },
   computed: {
@@ -130,9 +140,7 @@ export default {
       var date = new Date(this.confirmDate - tzOffset * 60 * 1000); // 对应时区调整显示时间
       return date.toJSON().substr(0, 19).replace('T', ' ');
     },
-    scanTransacationUrl() {
-      return getScanUrl(this.hash, 'transaction', this.chainId)
-    },
+    
     scanContractUrl() {
       return getScanUrl(this.tokenAddress, 'address', this.chainId)
     },
@@ -140,6 +148,11 @@ export default {
       return getScanUrl(this.from, 'address', this.chainId)
     }
   },
+  methods: {
+    scanTransacationUrl(txHash) {
+      return getScanUrl(txHash, 'transaction', this.chainId)
+    },
+  }
 };
 </script>
 

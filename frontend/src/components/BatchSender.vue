@@ -765,7 +765,9 @@ export default {
      */
     async doTransferUsingBatch(start=0) {
       // let start = 0
-      this.resetLatestTransactionInfo();
+      if (start === 0){
+        this.resetLatestTransactionInfo();
+      }
       this.errors[ErrorType.TransactionError] = null
       try {
         // 1. 初始化相应参数
@@ -791,6 +793,7 @@ export default {
         }
 
         // 2. 仅进行转账balance的检查
+        // 虽然已经有对应的
         let tmpCfxBalance = null, tmpTokenBalance = null
         tmpCfxBalance = BigInt((await this.tmpConflux.getBalance(this.account)).toString())
         if (!this.isNativeToken) {
@@ -831,15 +834,24 @@ export default {
         // check done
 
         // begin batch sending using requests from constructReqsAndGetGasCost()
-        const len = this.csv.tos.length
-        this.latestTransactionInfo.from = this.account
-        this.latestTransactionInfo.csv = this.csv;
-        this.latestTransactionInfo.chainId = this.chainId;
-        this.latestTransactionInfo.selectedToken = this.selectedToken;
-        this.latestTransactionInfo.hashesForDirectMode = new Array(len)
-        if (!this.isNativeToken) {
-          this.latestTransactionInfo.tokenAddress = this.contract.address
+        if (start === 0) {
+          this.latestTransactionInfo.from = this.account
+          this.latestTransactionInfo.csv = this.csv;
+          this.latestTransactionInfo.chainId = this.chainId;
+          this.latestTransactionInfo.selectedToken = this.selectedToken;
+          this.latestTransactionInfo.hashesForDirectMode = new Array(this.csv.tos.length)
+          if (!this.isNativeToken) {
+            this.latestTransactionInfo.tokenAddress = this.contract.address
+          }
+        } else {
+          // 一般来说 触发错误是操作者有意触发这种不正常的逻辑
+          if (this.latestTransactionInfo.from !== this.account
+            || this.latestTransactionInfo.chainId !== this.chainId
+            || this.latestTransactionInfo.selectedToken !== this.selectedToken) {
+              throw new Error("Resume info is not consistent with last sending info")
+            }
         }
+        
 
         this.txState = TxState.Pending
 
@@ -874,9 +886,9 @@ export default {
         this.txState = TxState.Executed
         this.notifyTxState();
         this.latestTransactionInfo.hashesForDirectMode = this.pendingResults
-        this.pendingResults = []
 
         await confirmed(this.tmpConflux, latestHash)
+        this.pendingResults = []
         this.latestTransactionInfo.confirmDate = Date.now();
         this.fetchTransactionList()
         this.transactionList.push(
