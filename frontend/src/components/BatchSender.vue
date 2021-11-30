@@ -115,9 +115,6 @@
     >
       <div>
         <el-row>
-          <el-col :span=8>
-            <el-input v-if="!privateKey" v-model="tmpPassword" :placeholder="$t('message.tooltip.directSendingMode.password')" show-password></el-input>
-          </el-col>
           <el-col :span=12>
             <el-button
               @click="doTransferUsingBatch(0)"
@@ -149,9 +146,6 @@
       <div>
         <el-row> {{ $t('message.tooltip.doResume.progress', { 'last': pendingResults.length }) }} </el-row>
         <el-row>
-          <el-col :span=8 v-if="!privateKey">
-            <el-input v-model="tmpPassword" :placeholder="$t('message.tooltip.directSendingMode.password')" show-password></el-input>
-          </el-col>
           <el-col :span=12>
             <el-button
               @click="doResume"
@@ -228,7 +222,6 @@ export default {
       resumeDialogVisible: false,
 
       tmpConflux: null,
-      tmpPassword: "",
       // tmpAccount: null,
 
       pendingResults: [],
@@ -796,14 +789,6 @@ export default {
           default:
             throw new Error("unexpected chainId: " + this.chainId)
         }
-        if (!this.privateKey) {
-          try{
-            this.$store.commit("decryptKeystore", this.tmpPassword)
-          }
-          finally{
-            this.tmpPassword = ""
-          }
-        }
 
         // 2. 仅进行转账balance的检查
         let tmpCfxBalance = null, tmpTokenBalance = null
@@ -878,7 +863,7 @@ export default {
           await executed(this.tmpConflux, latestHash)
 
           // notify current progress
-          if (i + BATCHLIMIT < this.csv.tos.length)
+          if (i + start + BATCHLIMIT < this.csv.tos.length)
             this.notifyTxState(`${this.pendingResults.length} transactions have been executed`)
         }
         await Promise.all([
