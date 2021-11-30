@@ -18,6 +18,7 @@ TokenBatchSender 用于 CFX 与 ERC777 token 的批量转账
     - [Dapp 输入 CSV 格式要求](#dapp-输入-csv-格式要求)
     - [Dapp 使用](#dapp-使用)
   - [更新日志](#更新日志)
+  - [TODOs](#todos)
 
 ## 项目主体结构
 
@@ -173,3 +174,9 @@ Dapp 使用中需要用户从磁盘中选择 csv 文件才能运行。该 csv �
 2021/06/09 0.9.0
 2021/06/23 修复windows系统下csv文件格式判断的问题
 2021/07/05 修复了加载大CSV文件时的卡顿问题
+
+## TODOs
+
+- [x] 续发重新构造交易
+- [x] 支持直接输入sk
+- [ ] gasPrice 手动选择

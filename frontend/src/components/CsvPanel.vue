@@ -96,28 +96,28 @@
       </el-col>
       <div v-else>
         <el-col :offset=2 :span=3>
-          <el-tooltip :effect="effect" :content="disabledTooltipDirectSending" placement="right" :disabled="Boolean(selectedToken)">
+          <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
             <div>
               <el-button
                 size="medium"
                 type="danger"
                 v-if="fileUploaded"
                 @click="$emit('transfer-in-direct-sending-mode')"
-                :disabled="!isFreeState || !selectedToken || isProcessing"
+                :disabled="!isFreeState || !selectedToken || !account || isProcessing"
                 >{{$t('message.command.sendInDirectSendingMode')}}</el-button
               >
             </div>
           </el-tooltip>
         </el-col>
-        <el-col :offset=4 :span=3 v-if="isTransactionError">
-          <el-tooltip :effect="effect" :content="disabledTooltipDirectSending" placement="right" :disabled="Boolean(selectedToken)">
+        <el-col :offset=4 :span=3 v-if="pendingResults.length">
+          <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
             <div>
               <el-button
                 size="medium"
                 type="danger"
                 v-if="fileUploaded"
                 @click="$emit('resume-requests')"
-                :disabled="!isFreeState || !selectedToken || isProcessing"
+                :disabled="!isFreeState || !selectedToken || !account || isProcessing"
                 >{{$t('message.command.resumePendingRequestsInDirectSendingMode')}}</el-button
               >
             </div>
@@ -135,7 +135,7 @@ import Worker from '../worker/process-csv.worker'
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError'],
+  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError', "pendingResults"],
   data() {
     return {
       isProcessing: false,
@@ -204,13 +204,6 @@ export default {
       if (!this.account) {
         return this.$t("message.warning.connectionWarning")
       }
-
-      if(!this.selectedToken) {
-        return this.$t("message.warning.tokenWarning")
-      }
-      return null
-    },
-    disabledTooltipDirectSending() {
 
       if(!this.selectedToken) {
         return this.$t("message.warning.tokenWarning")

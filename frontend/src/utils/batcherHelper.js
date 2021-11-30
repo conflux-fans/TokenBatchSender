@@ -1,7 +1,9 @@
+import { BATCHLIMIT } from "./const"
+
 class BatchRequesterWrapper {
   constructor(batcher) {
     this.batcher = batcher
-    this.BATCHLIMIT = 2000
+    this.BATCHLIMIT = BATCHLIMIT
   }
 
   // we could only process read requests now

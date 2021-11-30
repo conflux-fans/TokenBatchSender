@@ -12,11 +12,14 @@ Vue.use(Vuex)
 const store = new Vuex.Store({
   state: {
     conflux: null,
+    // the address of the account
     account: null,
     cfxBalance: null,
     confluxJS: null,
     effect: 'light',
-    directSendingMode: false
+    directSendingMode: false,
+    keystore: null,
+    privateKey: null
   },
   getters: {
     simplifiedAccount: state => {
@@ -31,38 +34,49 @@ const store = new Vuex.Store({
   // mutations 只能为同步事务 异步操作在 actions 内完成
   mutations: {
     init(state, payload) {
-      const { conflux, confluxJS, sdk } = payload;
+      const { conflux, confluxJS, sdk, directSendingMode } = payload;
       state.conflux = conflux;
       state.confluxJS = confluxJS;
       state.sdk = sdk;
+      state.directSendingMode = directSendingMode
 
-      state.conflux.on("accountsChanged", (accounts) => {
-        console.log("accounts changed");
-        console.log(accounts)
-        if (accounts.length === 0) {
-          store.commit('resetAccount')
-          store.commit('resetCfxBalance')
-        } else {
-          const account = accounts[0]
-          store.commit('setAccount', {account})
-          store.dispatch('updateCfxBalance')
-        }
-      })
+      if (!state.directSendingMode) {
+        state.conflux.on("accountsChanged", (accounts) => {
+          console.log("accounts changed");
+          console.log(accounts)
+          if (accounts.length === 0) {
+            store.commit('resetAccount')
+          } else {
+            const account = accounts[0]
+            store.commit('setAccount', {account})
+            store.dispatch('updateCfxBalance')
+          }
+        })
+      }
+      
     },
     setAccount(state, payload) {
       state.account = payload.account
     },
     resetAccount(state) {
       state.account = null
+      state.cfxBalance = null
+      state.keystore = null
+      state.privateKey = null
     },
     setCfxBalance(state, payload) {
       state.cfxBalance = payload.cfxBalance
     },
-    resetCfxBalance(state) {
-      state.cfxBalance = null
-    },
     setDirectSendingMode(state, val) {
       state.directSendingMode = val
+      localStorage.directSendingMode = val
+    },
+    decryptKeystore(state, password) {
+      if (!state.keystore) {
+        throw new Error("keystore is not selected")
+      }
+      const account = state.sdk.PrivateKeyAccount.decrypt(state.keystore, password, parseInt(state.conflux?.chainId))
+      state.privateKey = account.privateKey
     }
   },
   actions: {
@@ -80,6 +94,38 @@ const store = new Vuex.Store({
     async init(context, payload) {
       context.commit('init', payload);
     },
+    async setPrivateKey({ state }, { privateKey, address }) {
+      if (!address) {
+        address = state.sdk.sign.privateKeyToAddress(privateKey, parseInt(state.conflux?.chainId))
+      }
+      // refresh account
+      if (address !== state.account) {
+        store.commit('setAccount', {account: address})
+        store.dispatch('updateCfxBalance')
+      }
+      
+      state.privateKey = privateKey
+    },
+    async setKeystore({ state }, val) {
+      if (!state.directSendingMode) {
+        throw new Error("unexpected mutation: not in direct sending mode")
+      }
+      state.privateKey = null
+      const account = state.sdk.format.address(`0x${val.address}`, parseInt(state.conflux?.chainId))
+      store.commit('setAccount', {account})
+      store.dispatch('updateCfxBalance')
+      state.keystore = val
+    },
+    async setSecretKey({state}, val) {
+      if (!state.directSendingMode) {
+        throw new Error("unexpected mutation: not in direct sending mode")
+      }
+      state.privateKey = null
+      const account = (new state.sdk.PrivateKeyAccount(val, parseInt(state.conflux?.chainId))).address
+      store.commit('setAccount', {account})
+      store.dispatch('updateCfxBalance')
+      state.privateKey = val
+    }
   }
 })
 

@@ -107,3 +107,7 @@ dist
 build/contracts/
 deploys/
 .vscode/
+frontend/deploy.sh
+frontend/public/sk.json
+frontend/public/example.csv
+frontend/public/example_comp.csv

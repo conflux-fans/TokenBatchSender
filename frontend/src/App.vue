@@ -15,8 +15,17 @@
             </el-tooltip>
           </el-col>
           
-          <el-col :span="4" v-if="!accountConnected" > 
-            <el-button   class="full-width" round v-on:click="authorize">{{ $t("message.connect") }}</el-button>
+          <el-col :span="4" v-if="!accountConnected">
+            <el-button
+              v-if="!directSendingMode"
+              class="full-width"
+              round
+              v-on:click="authorize"
+              >{{ $t("message.connect") }}</el-button
+            >
+            <el-button v-else class="full-width" round v-on:click="secretKeyDiaglogVisible = true">{{
+              $t("message.importSecretKey")
+            }}</el-button>
           </el-col>
           <el-col :span="4" v-if="accountConnected">
               <el-button class="full-width" type="success" @click="showAccount">
@@ -60,6 +69,9 @@
               >{{ account }} <i class="el-icon-top-right el-icon--right"></i
             ></el-link>
           </span>
+          <el-button type="warning" size="small" @click='$store.commit("resetAccount")'> {{ $t("message.command.logout") }} </el-button>
+        </el-row>
+        <el-row>
         </el-row>
       </el-dialog>
 
@@ -73,6 +85,39 @@
         <el-row class="no-break">
           {{$t('message.tooltip.portal.beg')}}<el-link href="https://portal.confluxnetwork.org/" type="primary" target="_blank">ConfluxPortal<i class="el-icon-top-right el-icon--right"></i></el-link>{{$t('message.tooltip.portal.end')}}
         </el-row>
+      </el-dialog>
+
+      <el-dialog
+        :visible.sync="secretKeyDiaglogVisible"
+        width="45%"
+        :show-close="false"
+        class="secret-input"
+      >
+        <el-tabs v-model="secretKeyInputMode">
+          <el-tab-pane :label="$t('message.tooltip.directSendingMode.selectKeystore')" name="keystore">
+            <el-row>
+              <el-upload
+                class="full-width"
+                action="/hello"
+                :before-upload="handleKeystore"
+              >
+                <el-button type="danger"
+                  >{{ $t("message.command.uploadSecretKey")
+                  }}<i class="el-icon-key" style="font-size: 1em"></i>
+                </el-button>
+              </el-upload>
+            </el-row>
+          </el-tab-pane>
+          <el-tab-pane :label="$t('message.tooltip.directSendingMode.inputSecretKey')" name="sk">
+            <el-input
+              :placeholder="$t('message.tooltip.directSendingMode.secretKeyPlaceholder')"
+              v-model="secretKey">
+            <el-button slot="append" @click="setSecretKey"> {{ $t("message.ok") }} </el-button>
+
+            </el-input>
+          </el-tab-pane>
+        </el-tabs>
+        
       </el-dialog>
 
       <el-main class="main-background">
@@ -97,6 +142,9 @@ export default {
     return {
       accountDialogVisible: false,
       installationDialogVisible: false,
+      secretKeyDiaglogVisible: false,
+      secretKeyInputMode: "keystore",
+      secretKey: "",
     };
   },
   computed: {
@@ -106,6 +154,7 @@ export default {
       },
       set(val) {
         this.$store.commit('setDirectSendingMode', val)
+        location.reload()
       }
     },
     directSendingModeTooltip() {
@@ -170,10 +219,13 @@ export default {
     // executed immediately after page is fully loaded
     this.$nextTick(function() {
       if (typeof window.conflux !== "undefined") {
+        const directSendingMode =
+          localStorage.directSendingMode === "true" ? true : false;
         this.$store.dispatch('init', {
           conflux: window.conflux,
           confluxJS: window.confluxJS,
           sdk,
+          directSendingMode,
         })
       } else {
         this.installationDialogVisible = true
@@ -215,6 +267,29 @@ export default {
     showAccount() {
       this.accountDialogVisible = true;
     },
+    handleKeystore(file) {
+      this.processKeystore(file);
+      return false;
+    },
+    async processKeystore(file) {
+      try {
+        const sk_v3 = JSON.parse(await file.text());
+        // this.keystore = sk_v3;
+        await this.$store.dispatch("setKeystore", sk_v3)
+        this.secretKeyDiaglogVisible = false
+      } catch (err) {
+        this.processError(err);
+        return;
+      }
+    },
+    async setSecretKey() {
+      try {
+        await this.$store.dispatch("setSecretKey", this.secretKey)
+        this.secretKeyDiaglogVisible = false
+      } catch (err) {
+        this.processError(err)
+      }
+    }
   },
 };
 </script>
@@ -278,5 +353,14 @@ body,
 
 .mode-switch {
   align-items: center;
+}
+
+
+</style>
+
+<style scoped>
+.secret-input >>> .el-dialog__header {
+  padding: 0px 0px 0px 0px;
+  color: red
 }
 </style>

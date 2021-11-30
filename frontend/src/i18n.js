@@ -10,6 +10,7 @@ const messages = {
       selectToken: 'Select Token',
       selectText: "Click or type to select token",
       connect: 'Connect',
+      importSecretKey: 'IMPORT SECRET KEY',
       onRequest: "Requesting...",
       currentAccountAddress: 'Current Account Address',
       toConfluxScan: 'Go to ConfluxScan',
@@ -34,10 +35,11 @@ const messages = {
         clearHistory: 'CLEAR HISTORY',
         resetCsv: 'RESET CSV',
         send: 'SEND',
-        sendInDirectSendingMode: 'SEND in Compatible Mode',
-        uploadSecretKey: 'SELECT SECRET KEYSTORE FILE',
+        sendInDirectSendingMode: 'SEND',
+        uploadSecretKey: 'Select Keystore File',
         resumePendingRequestsInDirectSendingMode: "RESUME SENDING",
-        doResume: "Do Resume"
+        doResume: "Do Resume",
+        logout: "logout"
       },
       error: {
         networkError: 'Network Error',
@@ -52,6 +54,7 @@ const messages = {
         clearHistory: 'All history transactions will be deleted, are you sure?',
       },
       tooltip: {
+        balanceRefreshed: "Balance Refreshed",
         networkTooltip: 'Change network in ConfluxPortal',
         portal: {
           beg: "Chrome extension ",
@@ -70,18 +73,20 @@ const messages = {
           checkExample: 'Check example',
         },
         directSendingMode: {
-          modeOnTooltip: "Direct sending mode is on",
-          modeOffTooltip: "Direct sending mode is off",
+          modeOnTooltip: "Direct sending mode is on. Page will refresh if mode is changed",
+          modeOffTooltip: "Direct sending mode is off. Page will refresh if mode is changed",
           password: "Password here",
+          secretKeyPlaceholder: "Secret key here (beginning with 0x)",
+          selectKeystore: "Select Keystore File",
+          inputSecretKey: "Input Secret Key",
           warning: "WARNING for direct sending mode",
           atomic: "In direct sending mode, transactions will be done one after another",
           secret: "Secret key file is required, otherwise you have to approve every transaction by using Conflux Portal",
           error: "In direct sending mode, every 2000 transactions will be batched and sent. Sending would pause if any error occured, and sending cound resume from the break point"
         },
         doResume: {
-          progress: "{last} transactions have been sent, press button to resume sending",
+          progress: "{last} transactions have been sent, press button to check the latest transaction status and resume sending (if there are unsent transactions)",
           warning: "WARNING for resume",
-          forbids: "Do not send any other transaction before resuming batch sending"
         }
       }
     },
@@ -97,6 +102,7 @@ const messages = {
         selectToken: '代币选择',
         selectText: "下拉选择或键入搜索",
         connect: '连接钱包',
+        importSecretKey: '导入私钥',
         onRequest: "请求中...",
         currentAccountAddress: '当前账户地址',
         toConfluxScan: '在 ConfluxScan 上查看',
@@ -121,10 +127,11 @@ const messages = {
           clearHistory: '清空历史交易',
           resetCsv: '重置CSV文件',
           send: '批量转账',
-          sendInDirectSendingMode: '以直接转账模式进行批量转账',
+          sendInDirectSendingMode: '批量转账',
           uploadSecretKey: '选择私钥文件',
           resumePendingRequestsInDirectSendingMode: "续发",
-          doResume: "续发"
+          doResume: "续发",
+          logout: "登出"
         },
         error: {
           networkError: '网络错误',
@@ -139,6 +146,7 @@ const messages = {
           clearHistory: '确定清空所有历史交易吗?',
         },
         tooltip: {
+          balanceRefreshed: "余额已更新",
           networkTooltip: '在 ConfluxPortal 中切换网络',
           portal: {
             beg: "使用Conflux测试网水龙头需要安装浏览器插件",
@@ -157,19 +165,21 @@ const messages = {
             checkExample: '查看示例',
           },
           directSendingMode: {
-            modeOnTooltip: "直接转账模式已启用",
-            modeOffTooltip: "直接转账模式已关闭",
+            modeOnTooltip: "直接转账模式已启用。切换模式后，页面会自动刷新",
+            modeOffTooltip: "直接转账模式已关闭。切换模式后，页面会自动刷新",
             password: "请输入口令",
+            secretKeyPlaceholder: "输入私钥（以0x开头）",
+            selectKeystore: "导入 Keystore 文件",
+            inputSecretKey: "直接输入私钥",
             warning: "直接转账模式须知",
             atomic: "警告：直接转账模式下交易将会逐笔进行",
             secret: "直接转账模式需要您的私钥文件（否则使用Conflux Portal需要逐笔授权）",
             error: "直接转账模式下，每2000笔交易将打包发出。转账因错误中断时，可以使用续发功能从中断的地方继续转账"
           },
           doResume: {
-            progress: "您已发出了 {last} 笔交易, 接下来将续发之后的交易",
+            progress: "您已发出了 {last} 笔交易, 接下来将确认已发送交易的状态并续发之后的交易（如果仍有交易需要续发）",
             warning: "续发模式说明",
             condition: "直接发送模式下产生错误时，希望从断点续发时可以选择使用续发模式",
-            forbids: "使用续发功能前请不要用您的账户进行其他交易"
           }
         },
         

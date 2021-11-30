@@ -6,7 +6,7 @@
           <el-row class="bold-font">
             <el-col :span="5">{{ $t("message.token") }}</el-col>
             <el-col :offset="2" :span="11">
-              {{ $t("message.tokenBalance") }}
+              {{ $t("message.tokenBalance") }} <i class="el-icon-refresh-right" style="cursor: pointer" @click="refreshBalance"></i>
             </el-col>
             <el-col :offset="2" :span="2">
               {{ $t("message.decimals") }}
@@ -69,6 +69,7 @@
           v-bind:csvError="errors['csvError']"
           v-bind:transactionError="errors['transactionError']"
           v-bind:selectedToken="selectedToken"
+          v-bind:pendingResults="pendingResults"
           v-on:process-error="processError"
           v-on:set-csv="setCsv"
           v-on:reset-csv="resetCsv"
@@ -112,26 +113,14 @@
       :title="$t('message.command.sendInDirectSendingMode')"
       width="45%"
     >
-      <el-row v-if="!Boolean(tmpKeystore)">
-        <el-upload
-          class="full-width"
-          action="/hello"
-          :before-upload="handleKeystore"
-        >
-          <el-button
-            type="danger"
-          >{{$t('message.command.uploadSecretKey')}}<i class="el-icon-upload2" style="font-size: 3em"></i>
-          </el-button>
-        </el-upload>
-      </el-row>
-      <div v-else>
+      <div>
         <el-row>
           <el-col :span=8>
-            <el-input v-model="tmpPassword" :placeholder="$t('message.tooltip.directSendingMode.password')" show-password></el-input>
+            <el-input v-if="!privateKey" v-model="tmpPassword" :placeholder="$t('message.tooltip.directSendingMode.password')" show-password></el-input>
           </el-col>
           <el-col :span=12>
             <el-button
-              @click="doTransferUsingBatch"
+              @click="doTransferUsingBatch(0)"
               type="danger"
             >{{$t('message.command.sendInDirectSendingMode')}}</el-button>
           </el-col>
@@ -160,6 +149,9 @@
       <div>
         <el-row> {{ $t('message.tooltip.doResume.progress', { 'last': pendingResults.length }) }} </el-row>
         <el-row>
+          <el-col :span=8 v-if="!privateKey">
+            <el-input v-model="tmpPassword" :placeholder="$t('message.tooltip.directSendingMode.password')" show-password></el-input>
+          </el-col>
           <el-col :span=12>
             <el-button
               @click="doResume"
@@ -168,14 +160,14 @@
           </el-col>
         </el-row>
       </div>
-      <el-card>
+      <!-- <el-card>
         <el-tag type="danger">{{$t('message.tooltip.doResume.warning')}}</el-tag>
         <ul>
           <li>
             {{$t('message.tooltip.doResume.forbids')}}
           </li>
         </ul>
-      </el-card>
+      </el-card> -->
     </el-dialog>
   </div>
 </template>
@@ -191,10 +183,9 @@ import CurrentTransactionPanel from "./CurrentTransactionPanel.vue";
 import PromiseWorker from "promise-worker"
 // import { default as sdk } from 'js-conflux-sdk'
 import Worker from '../worker/requests.worker'
+import { BATCHLIMIT, GlobalDefaultGasPrice } from "../utils/const"
 
 const BigInt = window.BigInt
-const GlobalDefaultGasPrice = 100
-const BATCHLIMIT = 2000
 
 export default {
   components: {
@@ -237,11 +228,9 @@ export default {
       resumeDialogVisible: false,
 
       tmpConflux: null,
-      tmpKeystore: null,
       tmpPassword: "",
-      tmpAccount: null,
+      // tmpAccount: null,
 
-      pendingRequests: [],
       pendingResults: [],
     };
   },
@@ -261,6 +250,12 @@ export default {
     sdk() {
       return this.$store.state.sdk;
     },
+    privateKey() {
+      return this.$store.state.privateKey;
+    },
+    // keystore() {
+    //   return this.$store.state.privateKey;
+    // },
     cfxBalance() {
       return this.$store.state.cfxBalance;
     },
@@ -401,22 +396,6 @@ export default {
     openResumeDialog() {
       this.resumeDialogVisible = true
     },
-    handleKeystore(file) {
-      this.tmpConflux = null
-      this.processKeystore(file)
-      return false
-    },
-    async processKeystore(file) {
-      try {
-        const sk_v3 = JSON.parse(await file.text())
-        this.tmpKeystore = sk_v3
-      } catch (err) {
-        // console.log(err)
-        err._type = ErrorType.DirectSendingDialogError
-        this.processError(err)
-        return 
-      }
-    },
     fetchTransactionList() {
       if (localStorage.transactionList) {
         this.transactionList = JSON.parse(localStorage.transactionList);
@@ -472,6 +451,23 @@ export default {
       } catch (e) {
         e._type = ErrorType.BalanceError;
         throw e;
+      }
+    },
+    async refreshBalance() {
+      if (!this.account) return
+      try {
+        await Promise.all([
+          this.$store.dispatch("updateCfxBalance"),
+          this.updateTokenBalance(),
+        ]);
+        this.$notify({
+          title: this.$t("message.tooltip.balanceRefreshed"),
+          type: "success",
+          offset: 60,
+          duration: 6000
+        });
+      } catch (e) {
+        this.processError(e)
       }
     },
     fromDripToCfxWithDecimals(drip) {
@@ -598,11 +594,12 @@ export default {
     /**
      * 用batch进行estimate
      */
-    async doBatchEstimate(tmpContract) {
+    async doBatchEstimate(start) {
+      // console.log(start)
       let worker = new Worker();
       let promiseWorker = new PromiseWorker(worker);
       const estimateBatcher = this.tmpConflux.BatchRequest()
-      for (let i = 0; i < this.csv.tos.length; i+=1){
+      for (let i = start; i < this.csv.tos.length; i+=1){
         if (!this.isNativeToken) {
           // let tx
 
@@ -615,26 +612,27 @@ export default {
               decimals: this.decimals
             }
           })
-          const tx = tmpContract.send(
+          const tx = this.contract.send(
             this.csv.tos[i],
             drip,
             "0x0"
           )
 
-          tx.from = this.tmpAccount
+          tx.from = this.account
           estimateBatcher.add(this.tmpConflux.cfx.estimateGasAndCollateral.request(tx))
         }
       }
       // 进行 batch estimate
       const wrapper = new BatchRequesterWrapper(estimateBatcher)
       let estimateResults = await wrapper.execute()
+      // console.log(estimateResults)
       return estimateResults
     },
     /**
      * 构造raw交易 并返回gas与storage cost
      * 需要使用之前estimate的结果
      */
-    async constructReqsAndGetGasCostUsingEstimateResults(tmpContract, estimateResults) {
+    async constructReqsAndGetGasCostUsingEstimateResults(estimateResults, start) {
       let gasCostSum = BigInt(0)
       let storageSum = BigInt(0)
       let requests = []
@@ -643,16 +641,16 @@ export default {
       let promiseWorker = new PromiseWorker(worker);
 
       const epochNumber = await this.tmpConflux.getEpochNumber("latest_state")
-      const initNonce = await this.tmpConflux.getNextNonce(this.tmpAccount.address)
+      const initNonce = await this.tmpConflux.getNextNonce(this.account)
       
-      for (let i = 0; i < this.csv.tos.length; i+=1){
+      for (let i = 0; i + start < this.csv.tos.length; i+=1){
         try {
           let tx
           if (this.isNativeToken) {
             tx = new this.sdk.Transaction({
-              from: this.tmpAccount.address,
-              to: this.csv.tos[i],
-              value: this.fromCfxToDripWithDecimals(this.csv.vals[i]),
+              from: this.account,
+              to: this.csv.tos[i+start],
+              value: this.fromCfxToDripWithDecimals(this.csv.vals[i+start]),
               gas: 21000,
               gasPrice: GlobalDefaultGasPrice,
               epochHeight: epochNumber,
@@ -664,9 +662,9 @@ export default {
             gasCostSum += BigInt(21000)
           } else {
             // construct data field
-            tx = tmpContract.send(
-              this.csv.tos[i],
-              this.fromCfxToDripWithDecimals(this.csv.vals[i]),
+            tx = this.contract.send(
+              this.csv.tos[i+start],
+              this.fromCfxToDripWithDecimals(this.csv.vals[i+start]),
               "0x0"
             )
             // console.log(tx)
@@ -687,7 +685,7 @@ export default {
             type: "sign",
             data: {
               txOptions: tx,
-              privateKey: this.tmpAccount.privateKey,
+              privateKey: this.privateKey,
               chainId: parseInt(this.chainId)
             }
           })
@@ -698,7 +696,7 @@ export default {
           })
         } catch (err) {
 
-          err.message = `Failed at estimation of ${i+1}th transaction: ${this.csv.vals[i]} ${this.selectedToken} to ${this.csv.tos[i]}\n` + err.message
+          err.message = `Failed at estimation of ${i+start+1}th transaction: ${this.csv.vals[i+start]} ${this.selectedToken} to ${this.csv.tos[i+start]}\n` + err.message
           throw err
         }     
       }
@@ -716,7 +714,7 @@ export default {
      * userGasCost 用户需要支付的 gas 数，有代付时为0
      * userStorageCost 对应的storage limit， 有代付时为0
      */
-    async constructReqsAndGetGasCost(tmpContract) {
+    async constructReqsAndGetGasCost(start) {
 
       // 1. 确认合约代付状态
 
@@ -726,7 +724,7 @@ export default {
 
       // check if the account is sponsored
       const sponsorContract = this.confluxJS.Contract(sponsorContractConfig[parseInt(this.chainId)])
-      whitelisted = tmpContract ? await sponsorContract.isWhitelisted(tmpContract.address, this.tmpAccount.address) : false
+      whitelisted = this.isNativeToken ? false : await sponsorContract.isWhitelisted(this.contract.address, this.account)
 
       console.log(`account is whitelisted?: ${whitelisted}`)
 
@@ -741,12 +739,12 @@ export default {
       let estimateResults
       if (!this.isNativeToken) {
         // const wrapper = new BatchRequesterWrapper(estimateBatcher)
-        estimateResults = await this.doBatchEstimate(tmpContract)
+        estimateResults = await this.doBatchEstimate(start)
       }
 
       // 3. 使用estimate的结果 构造所有的请求
       //    签名用worker进行
-      let { requests, gasCostSum, storageSum } = await this.constructReqsAndGetGasCostUsingEstimateResults(tmpContract, estimateResults)
+      let { requests, gasCostSum, storageSum } = await this.constructReqsAndGetGasCostUsingEstimateResults(estimateResults, start)
       
       // 4. 处理 gas 和 stoarage
       // 当赞助余额不足以 cover 交易消耗时，我们认为赞助将不会被使用（虽然实际情况是消耗一部分赞助 另一部分由原本的账户承担）
@@ -772,7 +770,8 @@ export default {
      * 4. 包含 gas 与 storage 检查余额
      * 5. 进行发送
      */
-    async doTransferUsingBatch() {
+    async doTransferUsingBatch(start=0) {
+      // let start = 0
       this.resetLatestTransactionInfo();
       this.errors[ErrorType.TransactionError] = null
       try {
@@ -797,15 +796,20 @@ export default {
           default:
             throw new Error("unexpected chainId: " + this.chainId)
         }
-
-        this.tmpAccount = this.tmpConflux.wallet.addKeystore(this.tmpKeystore, this.tmpPassword)
+        if (!this.privateKey) {
+          try{
+            this.$store.commit("decryptKeystore", this.tmpPassword)
+          }
+          finally{
+            this.tmpPassword = ""
+          }
+        }
 
         // 2. 仅进行转账balance的检查
-        let tmpCfxBalance = null, tmpContract = null, tmpTokenBalance = null
-        tmpCfxBalance = BigInt((await this.tmpConflux.getBalance(this.tmpAccount.address)).toString())
+        let tmpCfxBalance = null, tmpTokenBalance = null
+        tmpCfxBalance = BigInt((await this.tmpConflux.getBalance(this.account)).toString())
         if (!this.isNativeToken) {
-          tmpContract = this.tmpConflux.Contract(tokenConfig[this.selectedToken])
-          tmpTokenBalance = BigInt((await tmpContract.balanceOf(this.tmpAccount.address)).toString())
+          tmpTokenBalance = BigInt((await this.contract.balanceOf(this.account)).toString())
         }
 
         let transferInDrip = BigInt(this.fromCfxToDripWithDecimals(preciseSum(this.csv.vals)))
@@ -821,11 +825,9 @@ export default {
           }
         }
         // 3. 初步检查完毕，进行构造交易
-        const {requests, userGasCost, userStorageCost} = await this.constructReqsAndGetGasCost(tmpContract)
+        const {requests, userGasCost, userStorageCost} = await this.constructReqsAndGetGasCost(start)
         
         // 4. 进行转账
-        // we need to resume progress using info below
-        this.pendingRequests = requests
 
         // 进行 gas 和 collateral 的检查
         // check token balance, gas cost and collateral 
@@ -845,22 +847,28 @@ export default {
 
         // begin batch sending using requests from constructReqsAndGetGasCost()
         const len = this.csv.tos.length
-        this.latestTransactionInfo.from = this.tmpAccount.address
+        this.latestTransactionInfo.from = this.account
         this.latestTransactionInfo.csv = this.csv;
         this.latestTransactionInfo.chainId = this.chainId;
         this.latestTransactionInfo.selectedToken = this.selectedToken;
         this.latestTransactionInfo.hashesForDirectMode = new Array(len)
         if (!this.isNativeToken) {
-          this.latestTransactionInfo.tokenAddress = tmpContract.address
+          this.latestTransactionInfo.tokenAddress = this.contract.address
         }
 
         this.txState = TxState.Pending
 
-        this.pendingResults = []
+        if (start === 0) {
+          this.pendingResults = []
+        }
         let latestHash, i
 
-        for (i = 0; i < this.csv.tos.length; i += BATCHLIMIT) {
-          let tmpResults = await this.tmpConflux.provider.batch(this.pendingRequests.slice(i, i + BATCHLIMIT))
+        if (start > 0) {
+          latestHash = this.pendingResults[start-1]
+        }
+
+        for (i = 0; i + start < this.csv.tos.length; i += BATCHLIMIT) {
+          let tmpResults = await this.tmpConflux.provider.batch(requests.slice(i, i + BATCHLIMIT))
           // console.log(tmpResults)
           latestHash = tmpResults[tmpResults.length - 1]
           // console.log(`latestHash: ${latestHash}`)
@@ -873,10 +881,15 @@ export default {
           if (i + BATCHLIMIT < this.csv.tos.length)
             this.notifyTxState(`${this.pendingResults.length} transactions have been executed`)
         }
+        await Promise.all([
+          this.$store.dispatch("updateCfxBalance"),
+          this.updateTokenBalance(),
+        ]);
 
         this.txState = TxState.Executed
         this.notifyTxState();
         this.latestTransactionInfo.hashesForDirectMode = this.pendingResults
+        this.pendingResults = []
 
         await confirmed(this.tmpConflux, latestHash)
         this.latestTransactionInfo.confirmDate = Date.now();
@@ -888,6 +901,7 @@ export default {
         this.notifyTxState();
       } catch (err) {
         err._type = ErrorType.TransactionError
+        this.latestTransactionInfo.hashesForDirectMode = this.pendingResults
         this.processError(err)
       }
     },
@@ -895,48 +909,16 @@ export default {
     async doResume() {
       this.errors[ErrorType.TransactionError] = null
       try {
-        this.txState = TxState.Pending
-        // console.log(this.pendingRequests)
-        if (this.pendingRequests == null)
-          throw new Error("No pending requests found")
+        this.txState = TxState.Preparing
         this.resumeDialogVisible = false
         // nonce for latest_state
-        let latestHash
 
         if (this.pendingResults.length > 0) {
-          latestHash = this.pendingResults[this.pendingResults.length - 1]
-        }
-
-        // 根据pendingResults的长度续发
-        // reuse requests
-        for (let i = this.pendingResults.length; i < this.csv.tos.length; i += BATCHLIMIT) {
-          // console.log(this.pendingRequests.slice(i, i + BATCHLIMIT))
-          let tmpResults = await this.tmpConflux.provider.batch(this.pendingRequests.slice(i, i + BATCHLIMIT))
-          // console.log(tmpResults)
-          latestHash = tmpResults[tmpResults.length - 1]
-
-          this.pendingResults = this.pendingResults.concat(tmpResults)
-
+          const latestHash = this.pendingResults[this.pendingResults.length - 1]
           await executed(this.tmpConflux, latestHash)
-
-          // notify current progress
-          if (i + BATCHLIMIT < this.csv.tos.length)
-            this.notifyTxState(`${this.pendingResults.length} transactions have been executed`)
         }
 
-        this.txState = TxState.Executed
-        this.notifyTxState();
-        this.latestTransactionInfo.hashesForDirectMode = this.pendingResults
-
-        await confirmed(this.tmpConflux, latestHash)
-        this.latestTransactionInfo.confirmDate = Date.now();
-        this.fetchTransactionList()
-        this.transactionList.push(
-          JSON.parse(JSON.stringify(this.latestTransactionInfo))
-        );
-        this.txState = TxState.Confirmed
-        this.notifyTxState();
-
+        await this.doTransferUsingBatch(this.pendingResults.length)
       } catch (err) {
         err._type = ErrorType.TransactionError
         this.processError(err)
@@ -970,6 +952,7 @@ export default {
     },
     resetCsv() {
       this.csv = null;
+      this.pendingResults = []
       this.errors[ErrorType.CsvError] = null;
     },
     resetBalance() {
