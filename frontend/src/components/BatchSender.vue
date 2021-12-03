@@ -124,14 +124,14 @@
         </el-row>
       </div>
       <el-card>
-        <el-tag type="danger">{{$t('message.tooltip.directSendingMode.warning')}}</el-tag>
+        <!-- <el-tag type="danger">{{$t('message.tooltip.directSendingMode.warning')}}</el-tag> -->
         <ul>
           <li>
             {{$t('message.tooltip.directSendingMode.atomic')}}
           </li>
-          <li>
+          <!-- <li>
             {{$t('message.tooltip.directSendingMode.secret')}}
-          </li>
+          </li> -->
           <li>
             {{$t('message.tooltip.directSendingMode.error')}}
           </li>

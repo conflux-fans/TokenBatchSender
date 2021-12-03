@@ -33,7 +33,7 @@
           <el-row>
             {{$t('message.tooltip.csv.big')}}
           </el-row>
-          <el-row>
+          <el-row v-if="!directSendingMode">
             {{$t('message.tooltip.csv.compat')}}
           </el-row>
         </div>
@@ -130,7 +130,7 @@
 <script>
 import { ErrorType } from '../enums'
 import { preciseSum } from '../utils'
-// import { parse } from 'papaparse'
+import PromiseWorker from "promise-worker"
 import Worker from '../worker/process-csv.worker'
 
 export default {
@@ -160,29 +160,18 @@ export default {
         const c = await file.text();
 
         let worker = new Worker()
-        worker.postMessage({
-          text: c,
-          chainId: this.chainId
-        })
+        let promiseWorker = new PromiseWorker(worker);
 
-        worker.onmessage = (msg) => {
-          if (msg.data.from === 'process-csv') {
-            this.isProcessing = false
-            let error = msg.data.error
-            let csv = msg.data.csv
-            if (csv) {
-              this.$emit('set-csv', csv)
-            } else if (error) {
-              error._type = ErrorType.CsvError
-              this.$emit('process-error', error);
-            } else {
-              console.log(msg)
-              let e = new Error(`Unexpected worker message: ${msg.data}`)
-              e._type = ErrorType.CsvError
-              this.$emit('process-error', e);
-            }
+        let msg = await promiseWorker.postMessage({
+          data: {
+            text: c,
+            chainId: this.chainId
           }
-        }
+        })
+        this.isProcessing = false
+        
+        this.$emit('set-csv', msg.csv)
+        
       } catch (err) {
         this.isProcessing = false
         err._type = ErrorType.CsvError;

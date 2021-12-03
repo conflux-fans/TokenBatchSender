@@ -31,6 +31,7 @@ const messages = {
       transferSum: 'Sum',
       transferCount: 'Count',
       historyTransactions: 'History Transactions',
+      transferDetails: 'Transfer Details',
       command: {
         clearHistory: 'CLEAR HISTORY',
         resetCsv: 'RESET CSV',
@@ -69,7 +70,7 @@ const messages = {
           format: 'Each row is composed of 2 columns: address and amount',
           titleLine: 'Title line is not required. If added, title line MUST be "address, amount"',
           big: 'May wait for a while for big CSV files',
-          compat: 'This sender batches transactions into a single transaction, which implementation may be not compatible with some wallets / exchange. The problem could be solved by using direct sending mode',
+          compat: 'In current mode, the sender will batch transfers into a single transaction, in which case several wallets / exchange could not detect the transfer. The problem could be solved by using direct sending mode',
           checkExample: 'Check example',
         },
         directSendingMode: {
@@ -79,10 +80,10 @@ const messages = {
           secretKeyPlaceholder: "Secret key here (beginning with 0x)",
           selectKeystore: "Select Keystore File",
           inputSecretKey: "Input Secret Key",
-          warning: "WARNING for direct sending mode",
+          warning: "direct sending mode",
           atomic: "In direct sending mode, transactions will be done one after another",
-          secret: "Secret key file is required, otherwise you have to approve every transaction by using Conflux Portal",
-          error: "In direct sending mode, every 2000 transactions will be batched and sent. Sending would pause if any error occured, and sending cound resume from the break point"
+          secret: "Secret key is required for direct sending mode, otherwise you have to approve every transaction by using Conflux Portal",
+          error: "In direct sending mode, every 500 transactions will be batched and sent. Sending would pause if any error occured, and sending cound resume from the break point"
         },
         doResume: {
           progress: "{last} transactions have been sent, press button to check the latest transaction status and resume sending (if there are unsent transactions)",
@@ -123,6 +124,7 @@ const messages = {
         transferSum: '转账代币总数',
         transferCount: '转账条数',
         historyTransactions: '历史交易',
+        transferDetails: '转账详情',
         command: {
           clearHistory: '清空历史交易',
           resetCsv: '重置CSV文件',
@@ -161,7 +163,7 @@ const messages = {
             format: '每行为一组数据，第一列为地址，第二列为转账代币数量',
             titleLine: '不需要添加标题行，如果添加，标题行格式只能为 address, amount',
             big: '文件较大时请稍作等待',
-            compat: '本工具通过调用智能合约方法进行批量转账，该方式可能与部分钱包/交易所不兼容。直接转账模式下能解决相应问题。',
+            compat: '当前模式会调用智能合约方法进行批量转账，该方式可能与部分钱包/交易所不兼容。直接转账模式下能解决相应问题',
             checkExample: '查看示例',
           },
           directSendingMode: {
@@ -172,9 +174,9 @@ const messages = {
             selectKeystore: "导入 Keystore 文件",
             inputSecretKey: "直接输入私钥",
             warning: "直接转账模式须知",
-            atomic: "警告：直接转账模式下交易将会逐笔进行",
-            secret: "直接转账模式需要您的私钥文件（否则使用Conflux Portal需要逐笔授权）",
-            error: "直接转账模式下，每2000笔交易将打包发出。转账因错误中断时，可以使用续发功能从中断的地方继续转账"
+            atomic: "直接转账模式下交易将会逐笔进行",
+            secret: "直接转账模式需要您的私钥（否则使用Conflux Portal需要逐笔授权）",
+            error: "直接转账模式下，每 500 笔交易将打包发出。转账因错误中断时，可以使用续发功能从中断的地方继续转账"
           },
           doResume: {
             progress: "您已发出了 {last} 笔交易, 接下来将确认已发送交易的状态并续发之后的交易（如果仍有交易需要续发）",

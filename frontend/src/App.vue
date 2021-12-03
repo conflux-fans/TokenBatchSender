@@ -113,7 +113,9 @@
               <el-input
                 v-if="keystore"
                 :placeholder="$t('message.tooltip.directSendingMode.password')"
-                v-model="password">
+                v-model="password"
+                show-password
+              >
                 <el-button slot="append" @click="setKeystore"> {{ $t("message.ok") }} </el-button>
               </el-input>
             </el-row>
@@ -126,6 +128,9 @@
 
             </el-input>
           </el-tab-pane>
+          <span style="font-size: 12px">
+          {{$t('message.tooltip.directSendingMode.secret')}}
+          </span>
         </el-tabs>
         
       </el-dialog>
@@ -349,7 +354,8 @@ body,
   /* margin-top: 60px; */
   padding: 0px;
   margin: 0px;
-  height: 100%
+  height: 100%;
+  font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;
 }
 
 .main-background {
