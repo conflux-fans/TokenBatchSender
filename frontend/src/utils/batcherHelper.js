@@ -12,7 +12,7 @@ class BatchRequesterWrapper {
     let requests = this.batcher.requests
     // console.log(requests)
     for (let i =0; i < requests.length; i+=this.BATCHLIMIT) {
-      const tmp_result = await this.batcher.provider.batch(requests.slice(i, i + this.BATCHLIMIT))
+      const tmp_result = await this.batcher.conflux.provider.batch(requests.slice(i, i + this.BATCHLIMIT))
       // console.log(tmp_result)
       results = results.concat(tmp_result)
     }

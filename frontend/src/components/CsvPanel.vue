@@ -69,7 +69,7 @@
         </ul>
       </div>
     </el-row>
-    <el-row v-if="isCsvError || fileUploaded" style="text-align: left">
+    <el-row v-if="isCsvError || fileUploaded" type="flex" align="middle" style="margin: 20px 0 0 0">
       <el-col :span=3>
         <el-button
           size="medium"
@@ -124,6 +124,20 @@
           </el-tooltip>
         </el-col>
       </div>
+
+      <el-col :offset=4 :span=2>
+        Gas Price
+      </el-col>
+      <el-col :span=3>
+        <el-input-number 
+          controls-position="right"
+          size="medium"
+          v-model="childGasPrice"
+          :step="5000"
+          :disabled="!isFreeState || !selectedToken || !account || isProcessing"
+        >  
+        </el-input-number>
+      </el-col>
     </el-row>
   </el-card>
 </template>
@@ -135,11 +149,18 @@ import Worker from '../worker/process-csv.worker'
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError', "pendingResults"],
+  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError', "pendingResults", "gasPrice"],
   data() {
     return {
       isProcessing: false,
+      childGasPrice: this.gasPrice
     };
+  },
+  watch: {
+    childGasPrice(newVal) {
+      // console.log(newVal)
+      this.$emit("set-gas-price", newVal)
+    }
   },
   methods: {
     // upload 组件在选择文件后会自动上传 本函数会在上传前调用并返回false 代表上传取消
@@ -161,6 +182,9 @@ export default {
 
         let worker = new Worker()
         let promiseWorker = new PromiseWorker(worker);
+        // let msg
+        // console.log(c)
+        // console.log(promiseWorker)
 
         let msg = await promiseWorker.postMessage({
           data: {

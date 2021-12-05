@@ -70,12 +70,14 @@
           v-bind:transactionError="errors['transactionError']"
           v-bind:selectedToken="selectedToken"
           v-bind:pendingResults="pendingResults"
+          v-bind:gasPrice="gasPrice"
           v-on:process-error="processError"
           v-on:set-csv="setCsv"
           v-on:reset-csv="resetCsv"
           v-on:transfer="transfer"
           v-on:transfer-in-direct-sending-mode="transferInDirectSendingMode"
           v-on:resume-requests="openResumeDialog"
+          v-on:set-gas-price="setGasPrice"
         >
         </csv-panel>
       </el-col>
@@ -194,6 +196,7 @@ export default {
       csv: null,
       selectedToken: "",
       decimals: "18",
+      gasPrice: GlobalDefaultGasPrice,
 
       contract: null,
       tokenBalance: null,
@@ -386,6 +389,9 @@ export default {
     });
   },
   methods: {
+    setGasPrice(gasPrice) {
+      this.gasPrice = gasPrice
+    },
     openResumeDialog() {
       this.resumeDialogVisible = true
     },
@@ -517,7 +523,7 @@ export default {
           pendingTx = tx.sendTransaction({
             from: this.account,
             value: 0,
-            gasPrice: GlobalDefaultGasPrice,
+            gasPrice: this.gasPrice,
             gas: estimate.gasLimit,
           });
 
@@ -535,7 +541,7 @@ export default {
           pendingTx = tx.sendTransaction({
             from: this.account,
             value: sum.toString(),
-            gasPrice: GlobalDefaultGasPrice,
+            gasPrice: this.gasPrice,
             gas: estimate.gasLimit,
           });
 
@@ -645,7 +651,7 @@ export default {
               to: this.csv.tos[i+start],
               value: this.fromCfxToDripWithDecimals(this.csv.vals[i+start]),
               gas: 21000,
-              gasPrice: GlobalDefaultGasPrice,
+              gasPrice: this.gasPrice,
               epochHeight: epochNumber,
               chainId: parseInt(this.chainId),
               nonce: preciseSum([initNonce, i]),
@@ -664,7 +670,7 @@ export default {
             const estimate = estimateResults[i]
             // console.log(estimate)
             tx.value = 0
-            tx.gasPrice = GlobalDefaultGasPrice
+            tx.gasPrice = this.gasPrice
             tx.gas = estimate.gasLimit
             tx.storageLimit = estimate.storageCollateralized
             tx.epochHeight = epochNumber
@@ -745,7 +751,7 @@ export default {
       let userGasCost = gasCostSum, userStorageCost = storageSum
       // gasSponsorBalance: 10e-18
       // gasCost: 10e-9 
-      if (whitelisted && gasSponsorBalance > gasCostSum*BigInt(GlobalDefaultGasPrice)) {
+      if (whitelisted && gasSponsorBalance > gasCostSum*BigInt(this.gasPrice)) {
         userGasCost = 0
       }
       // 1024 byte => 1 CFX 
@@ -820,14 +826,14 @@ export default {
         // 进行 gas 和 collateral 的检查
         // check token balance, gas cost and collateral 
         if (this.isNativeToken) {
-          if (tmpCfxBalance < transferInDrip + userGasCost * BigInt(GlobalDefaultGasPrice)) {
+          if (tmpCfxBalance < transferInDrip + userGasCost * BigInt(this.gasPrice)) {
             throw new Error(`Not enough balance: ${tmpCfxBalance} balance in account. ${transferInDrip} needed (including gas cost)`)
           }
         } else {
           if (tmpTokenBalance < transferInDrip) {
             throw new Error(`Not enough token balance: ${tmpTokenBalance} balance in account. ${transferInDrip}needed`)
           }
-          if (tmpCfxBalance < userGasCost * BigInt(GlobalDefaultGasPrice) + userStorageCost*BigInt(10**18)/BigInt(2**10)) {
+          if (tmpCfxBalance < userGasCost * BigInt(this.gasPrice) + userStorageCost*BigInt(10**18)/BigInt(2**10)) {
             throw new Error(`Not enough cfx to cover gas and collateral cost`)
           }
         }
