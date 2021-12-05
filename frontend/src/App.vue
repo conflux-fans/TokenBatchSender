@@ -128,9 +128,16 @@
 
             </el-input>
           </el-tab-pane>
-          <span style="font-size: 12px">
-          {{$t('message.tooltip.directSendingMode.secret')}}
-          </span>
+          <el-row>
+            <span style="font-size: 12px">
+              {{$t('message.tooltip.directSendingMode.secret')}}
+            </span>
+          </el-row>
+          <el-row>
+            <span style="font-size: 12px">
+              {{$t('message.tooltip.directSendingMode.safety')}}
+            </span>
+          </el-row>
         </el-tabs>
         
       </el-dialog>

@@ -70,7 +70,7 @@ const messages = {
           format: 'Each row is composed of 2 columns: address and amount',
           titleLine: 'Title line is not required. If added, title line MUST be "address, amount"',
           big: 'May wait for a while for big CSV files',
-          compat: 'In current mode, the sender will batch transfers into a single transaction, in which case several wallets / exchange could not detect the transfer. The problem could be solved by using direct sending mode',
+          compat: 'In current mode, the sender will batch transfers into a single transaction, in which case several wallets / exchange could not detect the transfer. The problem could be solved by activating direct sending mode',
           checkExample: 'Check example',
         },
         directSendingMode: {
@@ -82,7 +82,8 @@ const messages = {
           inputSecretKey: "Input Secret Key",
           warning: "direct sending mode",
           atomic: "In direct sending mode, transactions will be done one after another",
-          secret: "Secret key is required for direct sending mode, otherwise you have to approve every transaction by using Conflux Portal",
+          secret: "Secret key is required for direct sending mode, otherwise you have to approve every transaction by using Conflux Portal. Please change your secret key to ensure assets safety",
+          safety: "Please change your secret key to ensure assets safety",
           error: "In direct sending mode, every 500 transactions will be batched and sent. Sending would pause if any error occured, and sending cound resume from the break point"
         },
         doResume: {
@@ -176,6 +177,7 @@ const messages = {
             warning: "直接转账模式须知",
             atomic: "直接转账模式下交易将会逐笔进行",
             secret: "直接转账模式需要您的私钥（否则使用Conflux Portal需要逐笔授权）",
+            safety: "请每次使用该模式时更换新的私钥，保证资金安全",
             error: "直接转账模式下，每 500 笔交易将打包发出。转账因错误中断时，可以使用续发功能从中断的地方继续转账"
           },
           doResume: {

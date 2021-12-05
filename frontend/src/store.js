@@ -26,7 +26,8 @@ const store = new Vuex.Store({
       if (!state.account) {
         return null;
       }
-      const prefix = state.account.substr(0, 6)
+      const index = state.account.indexOf(":")
+      const prefix = state.account.substr(0, index+4)
       const tail = state.account.substr(state.account.length-4)
       return prefix + "..." + tail
     },

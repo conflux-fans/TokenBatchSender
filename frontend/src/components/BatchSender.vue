@@ -6,7 +6,7 @@
           <el-row class="bold-font">
             <el-col :span="5">{{ $t("message.token") }}</el-col>
             <el-col :offset="2" :span="11">
-              {{ $t("message.tokenBalance") }} <i class="el-icon-refresh-right" style="cursor: pointer" @click="refreshBalance"></i>
+              {{ $t("message.tokenBalance") }} <i class="el-icon-refresh-right" style="cursor: pointer" @click="refreshBalance" v-if="selectedToken && account"></i>
             </el-col>
             <el-col :offset="2" :span="2">
               {{ $t("message.decimals") }}
@@ -199,6 +199,9 @@ export default {
       gasPrice: GlobalDefaultGasPrice,
 
       contract: null,
+      // 选择代币为 cfx 时与 cfxBalance一致
+      // 否则为选定的代币的余额
+      // 整数 即显示时需要乘1e-18
       tokenBalance: null,
 
       txState: TxState.NoTask,
@@ -225,8 +228,8 @@ export default {
       resumeDialogVisible: false,
 
       tmpConflux: null,
-      // tmpAccount: null,
 
+      // batch sending 时，若最后一条交易尚未确认 相应交易会以此形式被缓存
       pendingResults: [],
     };
   },
@@ -265,12 +268,6 @@ export default {
       return this.selectedToken === "CFX";
     },
     queryingBalance() {
-      if (this.isNativeToken) {
-        return this.cfxBalance === null
-          ? this.$t("message.warning.connectionWarning")
-          : this.fromDripToCfxWithDecimals(this.cfxBalance);
-      }
-
       if (!this.account) {
         return this.$t("message.warning.connectionWarning");
       }
@@ -367,12 +364,11 @@ export default {
 
       if (newVal === "CFX") {
         this.contract = null;
-        this.decimals = 18;
-        return;
+      } else {
+        this.contract = this.confluxJS.Contract(tokenConfig[newVal]);
       }
 
       try {
-        this.contract = this.confluxJS.Contract(tokenConfig[newVal]);
         this.tokenBalance = null;
         await Promise.all([this.updateDecimals(), this.updateTokenBalance()]);
       } catch (e) {
@@ -426,6 +422,7 @@ export default {
     async updateDecimals() {
       try {
         if (!this.contract) {
+          this.decimals = 18
           return;
         }
         this.decimals = this.$t("message.onRequest");
@@ -439,7 +436,16 @@ export default {
     },
     async updateTokenBalance() {
       try {
-        if (!this.account || !this.contract) {
+        if (!this.account) {
+          return;
+        }
+
+        if (!this.contract) {
+          if (this.cfxBalance){
+            this.tokenBalance = this.cfxBalance;
+          } else {
+            this.tokenBalance = (await this.confluxJS.getBalance(this.account)).toString()
+          }
           return;
         }
 
