@@ -94,36 +94,34 @@
           </div>
         </el-tooltip>
       </el-col>
-      <div v-else>
-        <el-col :offset=2 :span=3>
-          <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
-            <div>
-              <el-button
-                size="medium"
-                type="danger"
-                v-if="fileUploaded"
-                @click="$emit('transfer-in-direct-sending-mode')"
-                :disabled="!isFreeState || !selectedToken || !account || isProcessing"
-                >{{$t('message.command.sendInDirectSendingMode')}}</el-button
-              >
-            </div>
-          </el-tooltip>
-        </el-col>
-        <el-col :offset=4 :span=3 v-if="pendingResults.length">
-          <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
-            <div>
-              <el-button
-                size="medium"
-                type="danger"
-                v-if="fileUploaded"
-                @click="$emit('resume-requests')"
-                :disabled="!isFreeState || !selectedToken || !account || isProcessing"
-                >{{$t('message.command.resumePendingRequestsInDirectSendingMode')}}</el-button
-              >
-            </div>
-          </el-tooltip>
-        </el-col>
-      </div>
+      <el-col :offset=2 :span=3 v-if="directSendingMode">
+        <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
+          <div>
+            <el-button
+              size="medium"
+              type="danger"
+              v-if="fileUploaded"
+              @click="$emit('transfer-in-direct-sending-mode')"
+              :disabled="!isFreeState || !selectedToken || !account || isProcessing"
+              >{{$t('message.command.sendInDirectSendingMode')}}</el-button
+            >
+          </div>
+        </el-tooltip>
+      </el-col>
+      <el-col :span=3 v-if="directSendingMode && pendingResults.length">
+        <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
+          <div>
+            <el-button
+              size="medium"
+              type="danger"
+              v-if="fileUploaded"
+              @click="$emit('resume-requests')"
+              :disabled="!isFreeState || !selectedToken || !account || isProcessing"
+              >{{$t('message.command.resumePendingRequestsInDirectSendingMode')}}</el-button
+            >
+          </div>
+        </el-tooltip>
+      </el-col>
 
       <el-col :offset=4 :span=2>
         Gas Price
