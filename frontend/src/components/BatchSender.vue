@@ -82,7 +82,7 @@
         </csv-panel>
       </el-col>
     </el-row>
-    <el-row type="flex" justify="center" v-if="!isFreeState || Boolean(errors['transactionError'])">
+    <el-row type="flex" justify="center" v-if="showLatestTx">
       <el-col :span="20">
         <current-transaction-panel
           v-bind:latestTransactionInfo="latestTransactionInfo"
@@ -304,7 +304,7 @@ export default {
     stateMessage() {
       switch (this.txState) {
         case TxState.Error:
-          return TxState.Error + ":" + this.errors['transactionError'].message;
+          return TxState.Error + ":" + this.errors[ErrorType.TransactionError].message;
         case TxState.Executed:
           return (
             TxState.Executed +
@@ -317,6 +317,9 @@ export default {
     },
     isFreeState() {
       return TxState.isFree(this.txState);
+    },
+    showLatestTx() {
+      return !TxState.isFree(this.txState) || this.txState === TxState.Confirmed || !!this.errors[ErrorType.TransactionError]
     },
     accountConnected() {
       return this.$store.state.account !== null;
