@@ -44,7 +44,9 @@ function parseCsv(data) {
           throw new Error(`A valid conflux hex address is expected to start with 0x0, 0x1, or 0x8`)
         }
       }
-
+      if (val === "") {
+        throw new Error(`Unexpected value: empty value`)
+      }
       if (isNaN(val)) {
         throw new Error(`Unexpected value: ${val} is not a number`)
       }
