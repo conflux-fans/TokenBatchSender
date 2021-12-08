@@ -74,7 +74,7 @@
           v-on:process-error="processError"
           v-on:set-csv="setCsv"
           v-on:reset-csv="resetCsv"
-          v-on:transfer="transfer"
+          v-on:transfer="throttledTransfer"
           v-on:transfer-in-direct-sending-mode="transferInDirectSendingMode"
           v-on:resume-requests="openResumeDialog"
           v-on:set-gas-price="setGasPrice"
@@ -119,7 +119,7 @@
         <el-row>
           <el-col :span=12>
             <el-button
-              @click="doTransferUsingBatch(0)"
+              @click="throttledBatchTransfer"
               type="danger"
             >{{$t('message.command.sendInDirectSendingMode')}}</el-button>
           </el-col>
@@ -150,7 +150,7 @@
         <el-row>
           <el-col :span=12>
             <el-button
-              @click="doResume"
+              @click="throttledResume"
               type="danger"
             >{{$t('message.command.doResume')}}</el-button>
           </el-col>
@@ -169,17 +169,17 @@
 </template>
 
 <script>
+import Web3 from "web3";
+import PromiseWorker from "promise-worker";
+import { throttle } from 'lodash';
 import { tokenConfig, routingContractConfig, sponsorContractConfig } from "../contracts-config";
 import { hexStringToArrayBuffer, preciseSum, moveDecimal, executed, confirmed, BatchRequesterWrapper} from "../utils";
+import { BATCHLIMIT, GlobalDefaultGasPrice } from "../utils/const"
 import { TxState, ErrorType } from "../enums";
-import Web3 from "web3";
 import CsvPanel from "./CsvPanel.vue";
 import HistoryTransactionPanel from "./HistoryTransactionPanel.vue";
 import CurrentTransactionPanel from "./CurrentTransactionPanel.vue";
-import PromiseWorker from "promise-worker"
-// import { default as sdk } from 'js-conflux-sdk'
 import Worker from '../worker/requests.worker'
-import { BATCHLIMIT, GlobalDefaultGasPrice } from "../utils/const"
 
 const BigInt = window.BigInt
 
@@ -491,8 +491,8 @@ export default {
       return this.sdk.Drip.fromCFX(moveDecimal(cfx, -deltaDecimal)).toString();
     },
     async transfer() {
-      // 避免转账按钮被点击多次
-      // 相当于是mutex
+      // 事实上已经进行了使用了 throttledTransfer 进行了节流的封装
+      // 这里额外进行一次检查
       if (this.isFreeState){
         this.txState = TxState.Preparing
       } else {
@@ -777,6 +777,25 @@ export default {
       }
       return { requests, userGasCost, userStorageCost }
     },
+    // 每 1s 只会触发一次，且第一次会触发，之后都无效
+    throttledTransfer: throttle(function() { 
+        this.transfer() 
+      }, 1000, {
+        leading: true,
+        trailing: false
+      }
+    ),
+    throttledBatchTransfer: throttle(function() {
+        this.doTransferUsingBatch(0) 
+      }, 1000, {
+        leading: true,
+        trailing: false
+      }
+    ),
+    throttledResume: throttle(function () { this.doResume() }, 1000, {
+      leading: true,
+      trailing: false
+    }),
     /**
      * 直接转账模式
      * workflow
@@ -789,8 +808,8 @@ export default {
     async doTransferUsingBatch(start=0) {
       // let start = 0
       if (start === 0){
-        // 避免转账按钮被点击多次
-        // 相当于是mutex
+        // 事实上进行了 节流的封装
+        // 不过这里再进行一次额外的检查，避免转账按钮被点击多次
         // start > 0 时 txstate 已经被设置了
         if (this.isFreeState){
           this.txState = TxState.Preparing
