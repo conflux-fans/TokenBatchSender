@@ -146,7 +146,7 @@
       width="45%"
     >
       <div>
-        <el-row> {{ $t('message.tooltip.doResume.progress', { 'last': pendingResults.length }) }} </el-row>
+        <el-row> {{ $t('message.tooltip.doResume.progress', { 'last': pendingResults.length, 'unknown': latestBatchResults.length }) }} </el-row>
         <el-row>
           <el-col :span=12>
             <el-button
@@ -156,14 +156,6 @@
           </el-col>
         </el-row>
       </div>
-      <!-- <el-card>
-        <el-tag type="danger">{{$t('message.tooltip.doResume.warning')}}</el-tag>
-        <ul>
-          <li>
-            {{$t('message.tooltip.doResume.forbids')}}
-          </li>
-        </ul>
-      </el-card> -->
     </el-dialog>
   </div>
 </template>
@@ -173,7 +165,7 @@ import Web3 from "web3";
 import PromiseWorker from "promise-worker";
 import { throttle } from 'lodash';
 import { tokenConfig, routingContractConfig, sponsorContractConfig } from "../contracts-config";
-import { hexStringToArrayBuffer, preciseSum, moveDecimal, executed, confirmed, BatchRequesterWrapper} from "../utils";
+import { hexStringToArrayBuffer, preciseSum, moveDecimal, executed, confirmed, sleep, BatchRequesterWrapper, countInvalidResults, mergeResults, selectRequests} from "../utils";
 import { BATCHLIMIT, GlobalDefaultGasPrice } from "../utils/const"
 import { TxState, ErrorType } from "../enums";
 import CsvPanel from "./CsvPanel.vue";
@@ -229,8 +221,10 @@ export default {
 
       tmpConflux: null,
 
-      // batch sending 时，若最后一条交易尚未确认 相应交易会以此形式被缓存
+      // batch sending 时缓存的所有交易
       pendingResults: [],
+      latestBatchRequests: [],
+      latestBatchResults: []
     };
   },
   computed: {
@@ -401,12 +395,12 @@ export default {
         this.transactionList = [];
       }
     },
-    notifyTxState(message = null) {
+    notifyTxState(message = null, duration=6000) {
       this.$notify({
         title: this.txState,
         type: this.stateType,
         offset: 60,
-        duration: 6000,
+        duration: duration,
         message
       });
     },
@@ -796,6 +790,20 @@ export default {
       leading: true,
       trailing: false
     }),
+    async ensureLatestRequestsAccepted() {
+      while (countInvalidResults(this.latestBatchResults) > 0) {
+        console.log(countInvalidResults(this.latestBatchResults))
+        this.notifyTxState(`${countInvalidResults(this.latestBatchResults)} transactions refused by TxPool, try resending`)
+        await sleep(5000)
+        let auxResults = await this.tmpConflux.provider.batch(selectRequests(this.latestBatchRequests, this.latestBatchResults))
+        console.log("auxResults")
+        console.log(auxResults)
+        mergeResults(this.latestBatchResults, auxResults)
+      }
+      this.pendingResults = this.pendingResults.concat(this.latestBatchResults)
+      this.latestBatchResults = []
+      this.latestBatchRequests = []
+    },
     /**
      * 直接转账模式
      * workflow
@@ -914,18 +922,32 @@ export default {
         }
 
         for (i = 0; i + start < this.csv.tos.length; i += BATCHLIMIT) {
-          let tmpResults = await this.tmpConflux.provider.batch(requests.slice(i, i + BATCHLIMIT))
+          this.latestBatchRequests = requests.slice(i, i + BATCHLIMIT)
+          this.latestBatchResults = await this.tmpConflux.provider.batch(this.latestBatchRequests)
+          console.log(this.latestBatchResults)
+          await this.ensureLatestRequestsAccepted()
+          // while (countInvalidResults(tmpResults) > 0) {
+          //   console.log(countInvalidResults(tmpResults))
+          //   this.notifyTxState(`${countInvalidResults(tmpResults)} transactions refused by TXPOOL, try resending`)
+          //   await sleep(5000)
+          //   let auxResults = await this.tmpConflux.provider.batch(selectRequests(requests.slice(i, i + BATCHLIMIT), tmpResults))
+          //   console.log("auxResults")
+          //   console.log(auxResults)
+          //   mergeResults(tmpResults, auxResults)
+          // }
+          
           // console.log(tmpResults)
-          latestHash = tmpResults[tmpResults.length - 1]
+          latestHash = this.pendingResults[this.pendingResults.length - 1]
           // console.log(`latestHash: ${latestHash}`)
           
-          this.pendingResults = this.pendingResults.concat(tmpResults)
+          // this.pendingResults = this.pendingResults.concat(this.latestBatchResults)
+          this.latestTransactionInfo.hashesForDirectMode = this.pendingResults
 
           await executed(this.tmpConflux, latestHash)
 
           // notify current progress
           if (i + start + BATCHLIMIT < this.csv.tos.length)
-            this.notifyTxState(`${this.pendingResults.length} transactions have been executed`)
+            this.notifyTxState(`${this.pendingResults.length} transactions have been executed`, 20000)
         }
         await Promise.all([
           this.$store.dispatch("updateCfxBalance"),
@@ -964,6 +986,7 @@ export default {
       try {
         this.resumeDialogVisible = false
         // nonce for latest_state
+        await this.ensureLatestRequestsAccepted()
 
         if (this.pendingResults.length > 0) {
           const latestHash = this.pendingResults[this.pendingResults.length - 1]
@@ -993,7 +1016,7 @@ export default {
         case ErrorType.TransactionError:
           this.errors[err._type] = err;
           this.txState = TxState.Error;
-          this.$alert(err.message, this.$t("message.error.transactionError"));
+          this.$alert(`${err.message}: ${err.data}`, this.$t("message.error.transactionError"));
           break;
         default:
           this.$alert(err.message, this.$t("message.error.error"));

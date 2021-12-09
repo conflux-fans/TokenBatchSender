@@ -37,5 +37,6 @@ async function confirmed(conflux, transactionHash, { delta = 1000, timeout = 30 
 
 export {
   executed,
-  confirmed
+  confirmed,
+  sleep
 }
