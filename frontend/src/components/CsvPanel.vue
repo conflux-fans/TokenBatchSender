@@ -102,13 +102,13 @@
               type="danger"
               v-if="fileUploaded"
               @click="$emit('transfer-in-direct-sending-mode')"
-              :disabled="!isFreeState || !selectedToken || !account || isProcessing"
+              :disabled="!isFreeState || !selectedToken || !account || isProcessing || !!latestBatchResults.length"
               >{{$t('message.command.sendInDirectSendingMode')}}</el-button
             >
           </div>
         </el-tooltip>
       </el-col>
-      <el-col :span=3 v-if="directSendingMode && pendingResults.length">
+      <el-col :span=3 v-if="directSendingMode && !!(pendingResults.length + latestBatchResults.length)">
         <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
           <div>
             <el-button
@@ -125,6 +125,9 @@
 
       <el-col :offset=4 :span=2>
         Gas Price
+        <el-tooltip :effect="effect" :content="$t('message.tooltip.gasPrice')">
+          <i class="header-icon el-icon-info"></i>
+        </el-tooltip>
       </el-col>
       <el-col :span=3>
         <el-input-number 
@@ -147,7 +150,7 @@ import Worker from '../worker/process-csv.worker'
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError', "pendingResults", "gasPrice"],
+  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError', "pendingResults", "latestBatchResults", "gasPrice"],
   data() {
     return {
       isProcessing: false,

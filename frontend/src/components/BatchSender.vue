@@ -22,7 +22,7 @@
                 :placeholder="$t('message.selectText')"
                 size="mini"
                 class="full-width"
-                :disabled="!isFreeState"
+                :disabled="!isFreeState || !!latestBatchResults.length"
               >
                 <el-option
                   v-for="item in options"
@@ -70,6 +70,7 @@
           v-bind:transactionError="errors['transactionError']"
           v-bind:selectedToken="selectedToken"
           v-bind:pendingResults="pendingResults"
+          v-bind:latestBatchResults="latestBatchResults"
           v-bind:gasPrice="gasPrice"
           v-on:process-error="processError"
           v-on:set-csv="setCsv"
@@ -740,8 +741,8 @@ export default {
 
       // 记录合约代付参数
       if (whitelisted) {
-        gasSponsorBalance = BigInt((await sponsorContract.getSponsoredBalanceForGas(sponsorContract.address)).toString())
-        storageSponsorBalance = BigInt((await sponsorContract.getSponsoredBalanceForCollateral(sponsorContract.address)).toString())
+        gasSponsorBalance = BigInt((await sponsorContract.getSponsoredBalanceForGas(this.contract.address)).toString())
+        storageSponsorBalance = BigInt((await sponsorContract.getSponsoredBalanceForCollateral(this.contract.address)).toString())
       }
 
       // 2. estimate 需要构造rpc请求 这里我们使用 batch 进行估算
@@ -761,13 +762,12 @@ export default {
       // 这样的处理接近实际情况并且能够回避一些危险的处理
       let userGasCost = gasCostSum, userStorageCost = storageSum
       // gasSponsorBalance: 10e-18
-      // gasCost: 10e-9 
       if (whitelisted && gasSponsorBalance > gasCostSum*BigInt(this.gasPrice)) {
-        userGasCost = 0
+        userGasCost = BigInt(0)
       }
       // 1024 byte => 1 CFX 
-      if (whitelisted && storageSponsorBalance > storageSum*BigInt(10**18)/BigInt(1024)) {
-        userStorageCost = 0
+      if (whitelisted && (storageSponsorBalance > storageSum*BigInt(10**18)/BigInt(1024))) {
+        userStorageCost = BigInt(0)
       }
       return { requests, userGasCost, userStorageCost }
     },
@@ -792,12 +792,12 @@ export default {
     }),
     async ensureLatestRequestsAccepted() {
       while (countInvalidResults(this.latestBatchResults) > 0) {
-        console.log(countInvalidResults(this.latestBatchResults))
+        // console.log(countInvalidResults(this.latestBatchResults))
         this.notifyTxState(`${countInvalidResults(this.latestBatchResults)} transactions refused by TxPool, try resending`)
         await sleep(5000)
         let auxResults = await this.tmpConflux.provider.batch(selectRequests(this.latestBatchRequests, this.latestBatchResults))
-        console.log("auxResults")
-        console.log(auxResults)
+        // console.log("auxResults")
+        // console.log(auxResults)
         mergeResults(this.latestBatchResults, auxResults)
       }
       this.pendingResults = this.pendingResults.concat(this.latestBatchResults)
@@ -924,19 +924,8 @@ export default {
         for (i = 0; i + start < this.csv.tos.length; i += BATCHLIMIT) {
           this.latestBatchRequests = requests.slice(i, i + BATCHLIMIT)
           this.latestBatchResults = await this.tmpConflux.provider.batch(this.latestBatchRequests)
-          console.log(this.latestBatchResults)
           await this.ensureLatestRequestsAccepted()
-          // while (countInvalidResults(tmpResults) > 0) {
-          //   console.log(countInvalidResults(tmpResults))
-          //   this.notifyTxState(`${countInvalidResults(tmpResults)} transactions refused by TXPOOL, try resending`)
-          //   await sleep(5000)
-          //   let auxResults = await this.tmpConflux.provider.batch(selectRequests(requests.slice(i, i + BATCHLIMIT), tmpResults))
-          //   console.log("auxResults")
-          //   console.log(auxResults)
-          //   mergeResults(tmpResults, auxResults)
-          // }
           
-          // console.log(tmpResults)
           latestHash = this.pendingResults[this.pendingResults.length - 1]
           // console.log(`latestHash: ${latestHash}`)
           
@@ -1016,7 +1005,7 @@ export default {
         case ErrorType.TransactionError:
           this.errors[err._type] = err;
           this.txState = TxState.Error;
-          this.$alert(`${err.message}: ${err.data}`, this.$t("message.error.transactionError"));
+          this.$alert(`${err.message}`, this.$t("message.error.transactionError"));
           break;
         default:
           this.$alert(err.message, this.$t("message.error.error"));
@@ -1028,6 +1017,8 @@ export default {
     resetCsv() {
       this.csv = null;
       this.pendingResults = []
+      this.latestBatchRequests = []
+      this.latestBatchResults = []
       this.errors[ErrorType.CsvError] = null;
     },
     resetBalance() {

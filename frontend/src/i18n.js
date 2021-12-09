@@ -74,6 +74,7 @@ const messages = {
           checkExample: 'Check example',
         },
         directSendingMode: {
+          gasPrice: "Suggesting using a overwhelming big gas price in direct sending mode，otherwise a batch（500 txs）may require 5-10 minutes to finish",
           modeOnTooltip: "Direct sending mode is on. Page will refresh if mode is changed",
           modeOffTooltip: "Direct sending mode is off. Page will refresh if mode is changed",
           password: "Password here",
@@ -149,6 +150,7 @@ const messages = {
           clearHistory: '确定清空所有历史交易吗?',
         },
         tooltip: {
+          gasPrice: "使用直接转账模式时，建议选取一个压倒性大的值，否则单个batch（500条交易）的确认时间可能会长达5-10分钟",
           balanceRefreshed: "余额已更新",
           networkTooltip: '在 ConfluxPortal 中切换网络',
           portal: {
