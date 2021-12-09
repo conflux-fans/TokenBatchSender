@@ -26,7 +26,8 @@ const store = new Vuex.Store({
       if (!state.account) {
         return null;
       }
-      const prefix = state.account.substr(0, 6)
+      const index = state.account.indexOf(":")
+      const prefix = state.account.substr(0, index+4)
       const tail = state.account.substr(state.account.length-4)
       return prefix + "..." + tail
     },
@@ -71,13 +72,6 @@ const store = new Vuex.Store({
       state.directSendingMode = val
       localStorage.directSendingMode = val
     },
-    decryptKeystore(state, password) {
-      if (!state.keystore) {
-        throw new Error("keystore is not selected")
-      }
-      const account = state.sdk.PrivateKeyAccount.decrypt(state.keystore, password, parseInt(state.conflux?.chainId))
-      state.privateKey = account.privateKey
-    }
   },
   actions: {
     async authorize(context) {
@@ -106,21 +100,23 @@ const store = new Vuex.Store({
       
       state.privateKey = privateKey
     },
-    async setKeystore({ state }, val) {
+    async setKeystore({ state }, { keystore, password }) {
       if (!state.directSendingMode) {
         throw new Error("unexpected mutation: not in direct sending mode")
       }
-      state.privateKey = null
-      const account = state.sdk.format.address(`0x${val.address}`, parseInt(state.conflux?.chainId))
-      store.commit('setAccount', {account})
+      state.keystore = keystore
+      const privateKeyAccount = state.sdk.PrivateKeyAccount.decrypt(state.keystore, password, parseInt(state.conflux?.chainId))
+      state.privateKey = privateKeyAccount.privateKey
+      store.commit('setAccount', { account:privateKeyAccount.address })
       store.dispatch('updateCfxBalance')
-      state.keystore = val
+      state.keystore = keystore
     },
     async setSecretKey({state}, val) {
       if (!state.directSendingMode) {
         throw new Error("unexpected mutation: not in direct sending mode")
       }
       state.privateKey = null
+      state.keystore = null
       const account = (new state.sdk.PrivateKeyAccount(val, parseInt(state.conflux?.chainId))).address
       store.commit('setAccount', {account})
       store.dispatch('updateCfxBalance')

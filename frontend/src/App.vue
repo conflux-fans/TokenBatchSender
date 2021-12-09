@@ -69,7 +69,7 @@
               >{{ account }} <i class="el-icon-top-right el-icon--right"></i
             ></el-link>
           </span>
-          <el-button type="warning" size="small" @click='$store.commit("resetAccount")'> {{ $t("message.command.logout") }} </el-button>
+          <el-button type="warning" size="small" @click='logout'> {{ $t("message.command.logout") }} </el-button>
         </el-row>
         <el-row>
         </el-row>
@@ -100,12 +100,24 @@
                 class="full-width"
                 action="/hello"
                 :before-upload="handleKeystore"
+                :auto-upload="false"
+                :multiple="false"
+                :limit="1"
+                :on-change="updateFileList"
               >
                 <el-button type="danger"
                   >{{ $t("message.command.uploadSecretKey")
                   }}<i class="el-icon-key" style="font-size: 1em"></i>
                 </el-button>
               </el-upload>
+              <el-input
+                v-if="keystore"
+                :placeholder="$t('message.tooltip.directSendingMode.password')"
+                v-model="password"
+                show-password
+              >
+                <el-button slot="append" @click="setKeystore"> {{ $t("message.ok") }} </el-button>
+              </el-input>
             </el-row>
           </el-tab-pane>
           <el-tab-pane :label="$t('message.tooltip.directSendingMode.inputSecretKey')" name="sk">
@@ -116,6 +128,16 @@
 
             </el-input>
           </el-tab-pane>
+          <el-row>
+            <span style="font-size: 12px">
+              {{$t('message.tooltip.directSendingMode.secret')}}
+            </span>
+          </el-row>
+          <el-row>
+            <span style="font-size: 12px">
+              {{$t('message.tooltip.directSendingMode.safety')}}
+            </span>
+          </el-row>
         </el-tabs>
         
       </el-dialog>
@@ -145,9 +167,17 @@ export default {
       secretKeyDiaglogVisible: false,
       secretKeyInputMode: "keystore",
       secretKey: "",
+      fileList: [],
+      password: ""
     };
   },
   computed: {
+    keystore() {
+      if (this.fileList.length === 0) {
+        return null
+      }
+      return this.fileList[0]
+    },
     directSendingMode: {
       get() {
         return this.$store.state.directSendingMode
@@ -267,6 +297,9 @@ export default {
     showAccount() {
       this.accountDialogVisible = true;
     },
+    updateFileList(file, fileList) {
+      this.fileList = fileList
+    },
     handleKeystore(file) {
       this.processKeystore(file);
       return false;
@@ -275,20 +308,42 @@ export default {
       try {
         const sk_v3 = JSON.parse(await file.text());
         // this.keystore = sk_v3;
-        await this.$store.dispatch("setKeystore", sk_v3)
-        this.secretKeyDiaglogVisible = false
+        this.keystore = sk_v3
+        // await this.$store.dispatch("setKeystore",  { sk_v3 })
+        // this.secretKeyDiaglogVisible = false
       } catch (err) {
         this.processError(err);
         return;
       }
     },
+    async setKeystore() {
+      try {
+        const keystore = JSON.parse(await this.keystore.raw.text())
+        await this.$store.dispatch("setKeystore",  {
+          keystore,
+          password: this.password
+        })
+        this.resetAccountInfoCache()
+        this.secretKeyDiaglogVisible = false
+      } catch (err) {
+        this.processError(err);
+      }
+    },
     async setSecretKey() {
       try {
         await this.$store.dispatch("setSecretKey", this.secretKey)
+        this.resetAccountInfoCache()
         this.secretKeyDiaglogVisible = false
       } catch (err) {
         this.processError(err)
       }
+    },
+    logout() {
+      this.$store.commit("resetAccount")
+    },
+    resetAccountInfoCache() {
+      this.secretKey = null;
+      this.password = null;
     }
   },
 };
@@ -306,7 +361,8 @@ body,
   /* margin-top: 60px; */
   padding: 0px;
   margin: 0px;
-  height: 100%
+  height: 100%;
+  font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;
 }
 
 .main-background {

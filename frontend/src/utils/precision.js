@@ -1,22 +1,23 @@
-import { times, plus, divide } from 'number-precision'
+import { BigNumber } from "bignumber.js";
+
 
 function preciseSum(arr) {
-  return arr.reduce((x, y) => plus(x, y), 0)
+  return BigNumber.sum(...arr).toString()
 }
 
 function moveDecimal(num, deltaDecimal) {
-  let rtn = num;
+  let rtn = new BigNumber(num);
 
   if (deltaDecimal >= 0) {
     for (let i = 0; i < deltaDecimal; ++i) {
-      rtn = times(rtn, 10)
+      rtn.times(10)
     }
   } else {
     for (let i = 0; i < -deltaDecimal; ++i) {
-      rtn = divide(rtn, 10)
+      rtn.dividedBy(10)
     }
   }
-  return rtn
+  return rtn.toString()
 }
 
 export {

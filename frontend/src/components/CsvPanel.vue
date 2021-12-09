@@ -33,7 +33,7 @@
           <el-row>
             {{$t('message.tooltip.csv.big')}}
           </el-row>
-          <el-row>
+          <el-row v-if="!directSendingMode">
             {{$t('message.tooltip.csv.compat')}}
           </el-row>
         </div>
@@ -69,7 +69,7 @@
         </ul>
       </div>
     </el-row>
-    <el-row v-if="isCsvError || fileUploaded" style="text-align: left">
+    <el-row v-if="isCsvError || fileUploaded" type="flex" align="middle" style="margin: 20px 0 0 0">
       <el-col :span=3>
         <el-button
           size="medium"
@@ -94,52 +94,71 @@
           </div>
         </el-tooltip>
       </el-col>
-      <div v-else>
-        <el-col :offset=2 :span=3>
-          <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
-            <div>
-              <el-button
-                size="medium"
-                type="danger"
-                v-if="fileUploaded"
-                @click="$emit('transfer-in-direct-sending-mode')"
-                :disabled="!isFreeState || !selectedToken || !account || isProcessing"
-                >{{$t('message.command.sendInDirectSendingMode')}}</el-button
-              >
-            </div>
-          </el-tooltip>
-        </el-col>
-        <el-col :offset=4 :span=3 v-if="pendingResults.length">
-          <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
-            <div>
-              <el-button
-                size="medium"
-                type="danger"
-                v-if="fileUploaded"
-                @click="$emit('resume-requests')"
-                :disabled="!isFreeState || !selectedToken || !account || isProcessing"
-                >{{$t('message.command.resumePendingRequestsInDirectSendingMode')}}</el-button
-              >
-            </div>
-          </el-tooltip>
-        </el-col>
-      </div>
+      <el-col :offset=2 :span=3 v-if="directSendingMode">
+        <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
+          <div>
+            <el-button
+              size="medium"
+              type="danger"
+              v-if="fileUploaded"
+              @click="$emit('transfer-in-direct-sending-mode')"
+              :disabled="!isFreeState || !selectedToken || !account || isProcessing"
+              >{{$t('message.command.sendInDirectSendingMode')}}</el-button
+            >
+          </div>
+        </el-tooltip>
+      </el-col>
+      <el-col :span=3 v-if="directSendingMode && pendingResults.length">
+        <el-tooltip :effect="effect" :content="disabledTooltip" placement="right" :disabled="Boolean(selectedToken)">
+          <div>
+            <el-button
+              size="medium"
+              type="danger"
+              v-if="fileUploaded"
+              @click="$emit('resume-requests')"
+              :disabled="!isFreeState || !selectedToken || !account || isProcessing"
+              >{{$t('message.command.resumePendingRequestsInDirectSendingMode')}}</el-button
+            >
+          </div>
+        </el-tooltip>
+      </el-col>
+
+      <el-col :offset=4 :span=2>
+        Gas Price
+      </el-col>
+      <el-col :span=3>
+        <el-input-number 
+          controls-position="right"
+          size="medium"
+          v-model="childGasPrice"
+          :step="5000"
+          :disabled="!isFreeState || !selectedToken || !account || isProcessing"
+        >  
+        </el-input-number>
+      </el-col>
     </el-row>
   </el-card>
 </template>
 <script>
 import { ErrorType } from '../enums'
 import { preciseSum } from '../utils'
-// import { parse } from 'papaparse'
+import PromiseWorker from "promise-worker"
 import Worker from '../worker/process-csv.worker'
 
 export default {
   name: "CsvPanel",
-  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError', "pendingResults"],
+  props: ['csv', 'isFreeState', 'csvError', 'chainId', 'selectedToken', 'transactionError', "pendingResults", "gasPrice"],
   data() {
     return {
       isProcessing: false,
+      childGasPrice: this.gasPrice
     };
+  },
+  watch: {
+    childGasPrice(newVal) {
+      // console.log(newVal)
+      this.$emit("set-gas-price", newVal)
+    }
   },
   methods: {
     // upload 组件在选择文件后会自动上传 本函数会在上传前调用并返回false 代表上传取消
@@ -160,29 +179,21 @@ export default {
         const c = await file.text();
 
         let worker = new Worker()
-        worker.postMessage({
-          text: c,
-          chainId: this.chainId
-        })
+        let promiseWorker = new PromiseWorker(worker);
+        // let msg
+        // console.log(c)
+        // console.log(promiseWorker)
 
-        worker.onmessage = (msg) => {
-          if (msg.data.from === 'process-csv') {
-            this.isProcessing = false
-            let error = msg.data.error
-            let csv = msg.data.csv
-            if (csv) {
-              this.$emit('set-csv', csv)
-            } else if (error) {
-              error._type = ErrorType.CsvError
-              this.$emit('process-error', error);
-            } else {
-              console.log(msg)
-              let e = new Error(`Unexpected worker message: ${msg.data}`)
-              e._type = ErrorType.CsvError
-              this.$emit('process-error', e);
-            }
+        let msg = await promiseWorker.postMessage({
+          data: {
+            text: c,
+            chainId: this.chainId
           }
-        }
+        })
+        this.isProcessing = false
+        
+        this.$emit('set-csv', msg.csv)
+        
       } catch (err) {
         this.isProcessing = false
         err._type = ErrorType.CsvError;
