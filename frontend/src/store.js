@@ -19,7 +19,8 @@ const store = new Vuex.Store({
     effect: 'light',
     directSendingMode: false,
     keystore: null,
-    privateKey: null
+    privateKey: null,
+    chainId: null,
   },
   getters: {
     simplifiedAccount: state => {
@@ -54,6 +55,17 @@ const store = new Vuex.Store({
           }
         })
       }
+      if (state.conflux.isFluent) {
+        state.conflux.on("connect", async () => {
+          const chainId = await state.conflux.request({method: 'cfx_chainId'})
+          // console.log(chainId)
+          state.chainId = chainId
+        })
+
+        state.conflux.on("chainChanged", () => {
+          location.reload()
+        })
+      }
       
     },
     setAccount(state, payload) {
@@ -75,7 +87,12 @@ const store = new Vuex.Store({
   },
   actions: {
     async authorize(context) {
-      const accounts = await context.state.conflux.enable();
+      let accounts;
+      if (context.state.conflux.isFluent) {
+        accounts = await context.state.conflux.request({method: "cfx_requestAccounts"});
+      } else {
+        accounts = await context.state.conflux.enable();
+      }
       context.commit('setAccount', { 
         account: accounts[0]
       })
@@ -90,7 +107,8 @@ const store = new Vuex.Store({
     },
     async setPrivateKey({ state }, { privateKey, address }) {
       if (!address) {
-        address = state.sdk.sign.privateKeyToAddress(privateKey, parseInt(state.conflux?.chainId))
+        const chainId = state.chainId || state.conflux?.chainId;
+        address = state.sdk.sign.privateKeyToAddress(privateKey, parseInt(chainId))
       }
       // refresh account
       if (address !== state.account) {
@@ -105,7 +123,8 @@ const store = new Vuex.Store({
         throw new Error("unexpected mutation: not in direct sending mode")
       }
       state.keystore = keystore
-      const privateKeyAccount = state.sdk.PrivateKeyAccount.decrypt(state.keystore, password, parseInt(state.conflux?.chainId))
+      const chainId = state.chainId || state.conflux?.chainId;
+      const privateKeyAccount = state.sdk.PrivateKeyAccount.decrypt(state.keystore, password, parseInt(chainId))
       state.privateKey = privateKeyAccount.privateKey
       store.commit('setAccount', { account:privateKeyAccount.address })
       store.dispatch('updateCfxBalance')
@@ -117,7 +136,8 @@ const store = new Vuex.Store({
       }
       state.privateKey = null
       state.keystore = null
-      const account = (new state.sdk.PrivateKeyAccount(val, parseInt(state.conflux?.chainId))).address
+      const chainId = state.chainId || state.conflux?.chainId;
+      const account = (new state.sdk.PrivateKeyAccount(val, parseInt(chainId))).address
       store.commit('setAccount', {account})
       store.dispatch('updateCfxBalance')
       state.privateKey = val

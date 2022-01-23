@@ -213,7 +213,7 @@ export default {
       return this.$store.state.cfxBalance
     },
     networkText() {
-      switch (this.conflux?.chainId) {
+      switch (this.chainId) {
         case '0x405':
           return "Conflux Tethys";
         case '0x1':
@@ -222,10 +222,10 @@ export default {
           return "Portal Not Detected";
       }
 
-      return "networkId: " + this.conflux?.chainId;
+      return "networkId: " + this.chainId;
     },
     chainId() {
-      return this.conflux?.chainId;
+      return this.$store.state.chainId || this.conflux?.chainId;
     },
     simplifiedAccount() {
       return this.$store.getters.simplifiedAccount
@@ -251,9 +251,13 @@ export default {
       if (typeof window.conflux !== "undefined") {
         const directSendingMode =
           localStorage.directSendingMode === "true" ? true : false;
+
+        let confluxJS = new sdk.Conflux()
+        confluxJS.provider = window.conflux
+
         this.$store.dispatch('init', {
           conflux: window.conflux,
-          confluxJS: window.confluxJS,
+          confluxJS,
           sdk,
           directSendingMode,
         })

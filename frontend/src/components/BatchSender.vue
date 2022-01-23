@@ -165,8 +165,8 @@
 import Web3 from "web3";
 import PromiseWorker from "promise-worker";
 import { throttle } from 'lodash';
-import { tokenConfig, routingContractConfig, sponsorContractConfig } from "../contracts-config";
-import { hexStringToArrayBuffer, preciseSum, moveDecimal, executed, confirmed, sleep, BatchRequesterWrapper, countInvalidResults, mergeResults, selectRequests} from "../utils";
+import { tokenConfig, routingContractConfig } from "../contracts-config";
+import { preciseSum, moveDecimal, executed, confirmed, sleep, BatchRequesterWrapper, countInvalidResults, mergeResults, selectRequests} from "../utils";
 import { BATCHLIMIT, GlobalDefaultGasPrice } from "../utils/const"
 import { TxState, ErrorType } from "../enums";
 import CsvPanel from "./CsvPanel.vue";
@@ -257,7 +257,7 @@ export default {
       return this.errors["csvError"]?.message;
     },
     chainId() {
-      return this.conflux?.chainId;
+      return this.$store.state.chainId || this.conflux?.chainId;
     },
     isNativeToken() {
       return this.selectedToken === "CFX";
@@ -334,7 +334,7 @@ export default {
         if (
           this.$store.state.sdk?.address?.decodeCfxAddress(
             tokenConfig[option].address
-          )?.netId == this.$store.state.conflux?.chainId
+          )?.netId == this.chainId
         ) {
           tmp.push({
             value: option,
@@ -525,7 +525,7 @@ export default {
           const tx = this.contract.send(
             this.routingContract.address,
             sum.toString(),
-            hexStringToArrayBuffer(data)
+            data
           );
 
           const estimate = await tx.estimateGasAndCollateral({
@@ -542,7 +542,7 @@ export default {
           this.latestTransactionInfo.tokenAddress = this.contract.address;
         } else {
           const tx = this.routingContract.distributeCfx(
-            hexStringToArrayBuffer(data)
+            data
           );
 
           const estimate = await tx.estimateGasAndCollateral({
@@ -734,7 +734,7 @@ export default {
       let storageSponsorBalance = BigInt(0)
 
       // check if the account is sponsored
-      const sponsorContract = this.confluxJS.Contract(sponsorContractConfig[parseInt(this.chainId)])
+      const sponsorContract = this.tmpConflux.InternalContract("SponsorWhitelistControl")
       whitelisted = this.isNativeToken ? false : await sponsorContract.isWhitelisted(this.contract.address, this.account)
 
       console.log(`account is whitelisted?: ${whitelisted}`)

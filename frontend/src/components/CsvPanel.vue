@@ -123,7 +123,7 @@
         </el-tooltip>
       </el-col>
 
-      <el-col :offset=4 :span=2>
+      <el-col :offset=3 :span=3>
         Gas Price
         <el-tooltip :effect="effect" :content="$t('message.tooltip.gasPrice')">
           <i class="header-icon el-icon-info"></i>
