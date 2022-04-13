@@ -12,7 +12,7 @@
     "bignumber.js": "^9.0.1",
     "core-js": "^3.19.2",
     "element-ui": "^2.15.6",
-    "js-conflux-sdk": "^2.0.0-beta.10",
+    "js-conflux-sdk": "^2.0.7",
     "json-loader": "^0.5.7",
     "lodash": "^4.17.21",
     "papaparse": "^5.3.1",
